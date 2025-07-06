@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdmin } from '../context/AdminContext';
-import { Crown, LogOut, Plus, Trash2, Users, BookOpen, Building, Eye, X, Edit, Save, DollarSign, Settings, ArrowLeft, Upload, EyeOff, Share2 } from 'lucide-react';
+import { Crown, LogOut, Plus, Trash2, Users, BookOpen, Building, Eye, X, Edit, Save, DollarSign, Settings, ArrowLeft, Upload, EyeOff, Share2, Loader2 } from 'lucide-react';
 
 const Admin: React.FC = () => {
   const { 
     isAuthenticated, 
+    loading,
     login, 
     logout, 
     businesses, 
@@ -35,6 +36,7 @@ const Admin: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRegistrationDetail, setShowRegistrationDetail] = useState<any>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [newBusiness, setNewBusiness] = useState({
     name: '',
@@ -60,12 +62,27 @@ const Admin: React.FC = () => {
   const [newSocialMedia, setNewSocialMedia] = useState(socialMediaLinks);
   const [newPassword, setNewPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Update local state when context data changes
+  React.useEffect(() => {
+    setNewPrice(registrationPrice);
+    setNewContactInfo(contactInfo);
+    setNewSocialMedia(socialMediaLinks);
+  }, [registrationPrice, contactInfo, socialMediaLinks]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(loginForm.username, loginForm.password)) {
-      setLoginForm({ username: '', password: '' });
-    } else {
-      alert('Invalid credentials');
+    setIsSubmitting(true);
+    try {
+      const success = await login(loginForm.username, loginForm.password);
+      if (success) {
+        setLoginForm({ username: '', password: '' });
+      } else {
+        alert('Invalid credentials');
+      }
+    } catch (error) {
+      alert('Login failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -85,64 +102,157 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleAddBusiness = (e: React.FormEvent) => {
+  const handleAddBusiness = async (e: React.FormEvent) => {
     e.preventDefault();
-    addBusiness(newBusiness);
-    setNewBusiness({ name: '', logo: '', category: '', description: '', isNew: false });
-    setShowAddForm(false);
+    setIsSubmitting(true);
+    try {
+      await addBusiness(newBusiness);
+      setNewBusiness({ name: '', logo: '', category: '', description: '', isNew: false });
+      setShowAddForm(false);
+    } catch (error) {
+      alert('Failed to add business. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleAddBlogPost = (e: React.FormEvent) => {
+  const handleAddBlogPost = async (e: React.FormEvent) => {
     e.preventDefault();
-    addBlogPost(newBlogPost);
-    setNewBlogPost({
-      title: '',
-      excerpt: '',
-      content: '',
-      author: '',
-      date: new Date().toISOString().split('T')[0],
-      category: '',
-      imageUrl: '',
-    });
-    setShowAddForm(false);
+    setIsSubmitting(true);
+    try {
+      await addBlogPost(newBlogPost);
+      setNewBlogPost({
+        title: '',
+        excerpt: '',
+        content: '',
+        author: '',
+        date: new Date().toISOString().split('T')[0],
+        category: '',
+        imageUrl: '',
+      });
+      setShowAddForm(false);
+    } catch (error) {
+      alert('Failed to add blog post. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleUpdateProgram = (programId: string) => {
+  const handleUpdateProgram = async (programId: string) => {
     if (editingProgram) {
-      updateProgram(programId, editingProgram);
-      setEditingProgram(null);
-      setEditingItem(null);
+      setIsSubmitting(true);
+      try {
+        await updateProgram(programId, editingProgram);
+        setEditingProgram(null);
+        setEditingItem(null);
+      } catch (error) {
+        alert('Failed to update program. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  const handleUpdatePrice = () => {
-    updateRegistrationPrice(newPrice);
-    alert('Registration price updated successfully!');
+  const handleUpdatePrice = async () => {
+    setIsSubmitting(true);
+    try {
+      await updateRegistrationPrice(newPrice);
+      alert('Registration price updated successfully!');
+    } catch (error) {
+      alert('Failed to update price. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleUpdateContactInfo = () => {
-    updateContactInfo(newContactInfo);
-    alert('Contact information updated successfully!');
+  const handleUpdateContactInfo = async () => {
+    setIsSubmitting(true);
+    try {
+      await updateContactInfo(newContactInfo);
+      alert('Contact information updated successfully!');
+    } catch (error) {
+      alert('Failed to update contact info. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleUpdateSocialMedia = () => {
-    updateSocialMediaLinks(newSocialMedia);
-    alert('Social media links updated successfully!');
+  const handleUpdateSocialMedia = async () => {
+    setIsSubmitting(true);
+    try {
+      await updateSocialMediaLinks(newSocialMedia);
+      alert('Social media links updated successfully!');
+    } catch (error) {
+      alert('Failed to update social media links. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     if (newPassword.trim()) {
-      updateAdminPassword(newPassword);
-      setNewPassword('');
-      alert('Password updated successfully!');
+      setIsSubmitting(true);
+      try {
+        await updateAdminPassword(newPassword);
+        setNewPassword('');
+        alert('Password updated successfully!');
+      } catch (error) {
+        alert('Failed to update password. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  const handleDeleteRegistration = (registrationId: string) => {
+  const handleDeleteRegistration = async (registrationId: string) => {
     if (window.confirm('Are you sure you want to delete this registration?')) {
-      removeRegistration(registrationId);
+      setIsSubmitting(true);
+      try {
+        await removeRegistration(registrationId);
+      } catch (error) {
+        alert('Failed to delete registration. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
+
+  const handleDeleteBusiness = async (businessId: string) => {
+    if (window.confirm('Are you sure you want to delete this business?')) {
+      setIsSubmitting(true);
+      try {
+        await removeBusiness(businessId);
+      } catch (error) {
+        alert('Failed to delete business. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleDeleteBlogPost = async (postId: string) => {
+    if (window.confirm('Are you sure you want to delete this blog post?')) {
+      setIsSubmitting(true);
+      try {
+        await removeBlogPost(postId);
+      } catch (error) {
+        alert('Failed to delete blog post. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-ivory flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-royal-blue mx-auto mb-4" />
+          <p className="text-gray-600 font-inter">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -173,6 +283,7 @@ const Admin: React.FC = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
                 placeholder="Enter username"
                 required
+                disabled={isSubmitting}
               />
             </div>
             <div>
@@ -187,11 +298,13 @@ const Admin: React.FC = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent pr-12"
                   placeholder="Enter password"
                   required
+                  disabled={isSubmitting}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  disabled={isSubmitting}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -199,9 +312,17 @@ const Admin: React.FC = () => {
             </div>
             <button
               type="submit"
-              className="w-full bg-royal-blue text-white py-3 rounded-lg font-inter font-semibold hover:bg-deep-blue transition-colors"
+              disabled={isSubmitting}
+              className="w-full bg-royal-blue text-white py-3 rounded-lg font-inter font-semibold hover:bg-deep-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              Login
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Logging in...
+                </>
+              ) : (
+                'Login'
+              )}
             </button>
           </form>
         </div>
@@ -304,7 +425,8 @@ const Admin: React.FC = () => {
                   <h2 className="text-xl font-playfair font-bold text-gray-900">Manage Businesses</h2>
                   <button
                     onClick={() => setShowAddForm(true)}
-                    className="flex items-center space-x-2 bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors"
+                    disabled={isSubmitting}
+                    className="flex items-center space-x-2 bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" />
                     <span className="font-inter">Add Business</span>
@@ -321,6 +443,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewBusiness(prev => ({ ...prev, name: e.target.value }))}
                         className="px-3 py-2 border border-gray-300 rounded-lg"
                         required
+                        disabled={isSubmitting}
                       />
                       <div>
                         <div className="flex items-center space-x-2 mb-2">
@@ -330,6 +453,7 @@ const Admin: React.FC = () => {
                             value={newBusiness.logo}
                             onChange={(e) => setNewBusiness(prev => ({ ...prev, logo: e.target.value }))}
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                            disabled={isSubmitting}
                           />
                           <label className="flex items-center space-x-1 bg-gray-200 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-300 transition-colors">
                             <Upload className="w-4 h-4" />
@@ -339,6 +463,7 @@ const Admin: React.FC = () => {
                               accept="image/*"
                               onChange={(e) => handleImageUpload(e, 'business')}
                               className="hidden"
+                              disabled={isSubmitting}
                             />
                           </label>
                         </div>
@@ -353,6 +478,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewBusiness(prev => ({ ...prev, category: e.target.value }))}
                         className="px-3 py-2 border border-gray-300 rounded-lg"
                         required
+                        disabled={isSubmitting}
                       />
                       <div className="flex items-center space-x-2">
                         <input
@@ -361,6 +487,7 @@ const Admin: React.FC = () => {
                           checked={newBusiness.isNew}
                           onChange={(e) => setNewBusiness(prev => ({ ...prev, isNew: e.target.checked }))}
                           className="rounded"
+                          disabled={isSubmitting}
                         />
                         <label htmlFor="isNew" className="text-sm font-inter">Mark as New</label>
                       </div>
@@ -372,18 +499,22 @@ const Admin: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4"
                       rows={3}
                       required
+                      disabled={isSubmitting}
                     />
                     <div className="flex space-x-2">
                       <button
                         type="submit"
-                        className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors"
+                        disabled={isSubmitting}
+                        className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors disabled:opacity-50 flex items-center"
                       >
+                        {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                         Add Business
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowAddForm(false)}
-                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                        disabled={isSubmitting}
+                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -413,8 +544,9 @@ const Admin: React.FC = () => {
                         )}
                       </div>
                       <button
-                        onClick={() => removeBusiness(business.id)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
+                        onClick={() => handleDeleteBusiness(business.id)}
+                        disabled={isSubmitting}
+                        className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -430,7 +562,8 @@ const Admin: React.FC = () => {
                   <h2 className="text-xl font-playfair font-bold text-gray-900">Manage Blog Posts</h2>
                   <button
                     onClick={() => setShowAddForm(true)}
-                    className="flex items-center space-x-2 bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors"
+                    disabled={isSubmitting}
+                    className="flex items-center space-x-2 bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" />
                     <span className="font-inter">Add Post</span>
@@ -447,6 +580,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewBlogPost(prev => ({ ...prev, title: e.target.value }))}
                         className="px-3 py-2 border border-gray-300 rounded-lg"
                         required
+                        disabled={isSubmitting}
                       />
                       <input
                         type="text"
@@ -455,6 +589,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewBlogPost(prev => ({ ...prev, author: e.target.value }))}
                         className="px-3 py-2 border border-gray-300 rounded-lg"
                         required
+                        disabled={isSubmitting}
                       />
                       <input
                         type="text"
@@ -463,6 +598,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewBlogPost(prev => ({ ...prev, category: e.target.value }))}
                         className="px-3 py-2 border border-gray-300 rounded-lg"
                         required
+                        disabled={isSubmitting}
                       />
                       <input
                         type="date"
@@ -470,6 +606,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewBlogPost(prev => ({ ...prev, date: e.target.value }))}
                         className="px-3 py-2 border border-gray-300 rounded-lg"
                         required
+                        disabled={isSubmitting}
                       />
                     </div>
                     <div className="mb-4">
@@ -480,6 +617,7 @@ const Admin: React.FC = () => {
                           value={newBlogPost.imageUrl}
                           onChange={(e) => setNewBlogPost(prev => ({ ...prev, imageUrl: e.target.value }))}
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                          disabled={isSubmitting}
                         />
                         <label className="flex items-center space-x-1 bg-gray-200 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-300 transition-colors">
                           <Upload className="w-4 h-4" />
@@ -489,6 +627,7 @@ const Admin: React.FC = () => {
                             accept="image/*"
                             onChange={(e) => handleImageUpload(e, 'blog')}
                             className="hidden"
+                            disabled={isSubmitting}
                           />
                         </label>
                       </div>
@@ -503,6 +642,7 @@ const Admin: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4"
                       rows={3}
                       required
+                      disabled={isSubmitting}
                     />
                     <textarea
                       placeholder="Content"
@@ -511,18 +651,22 @@ const Admin: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4"
                       rows={6}
                       required
+                      disabled={isSubmitting}
                     />
                     <div className="flex space-x-2">
                       <button
                         type="submit"
-                        className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors"
+                        disabled={isSubmitting}
+                        className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors disabled:opacity-50 flex items-center"
                       >
+                        {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                         Add Post
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowAddForm(false)}
-                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                        disabled={isSubmitting}
+                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -543,8 +687,9 @@ const Admin: React.FC = () => {
                         </div>
                       </div>
                       <button
-                        onClick={() => removeBlogPost(post.id)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
+                        onClick={() => handleDeleteBlogPost(post.id)}
+                        disabled={isSubmitting}
+                        className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -573,10 +718,19 @@ const Admin: React.FC = () => {
                               setEditingProgram(program);
                             }
                           }}
-                          className="flex items-center space-x-2 bg-royal-blue text-white px-3 py-1 rounded-lg hover:bg-deep-blue transition-colors"
+                          disabled={isSubmitting}
+                          className="flex items-center space-x-2 bg-royal-blue text-white px-3 py-1 rounded-lg hover:bg-deep-blue transition-colors disabled:opacity-50"
                         >
-                          {editingItem === program.id ? <Save className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
-                          <span className="text-sm">{editingItem === program.id ? 'Save' : 'Edit'}</span>
+                          {isSubmitting && editingItem === program.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : editingItem === program.id ? (
+                            <Save className="w-4 h-4" />
+                          ) : (
+                            <Edit className="w-4 h-4" />
+                          )}
+                          <span className="text-sm">
+                            {isSubmitting && editingItem === program.id ? 'Saving...' : editingItem === program.id ? 'Save' : 'Edit'}
+                          </span>
                         </button>
                       </div>
                       
@@ -587,6 +741,7 @@ const Admin: React.FC = () => {
                             onChange={(e) => setEditingProgram(prev => ({ ...prev, description: e.target.value }))}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                             rows={4}
+                            disabled={isSubmitting}
                           />
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Features (one per line)</label>
@@ -595,6 +750,7 @@ const Admin: React.FC = () => {
                               onChange={(e) => setEditingProgram(prev => ({ ...prev, features: e.target.value.split('\n').filter(f => f.trim()) }))}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                               rows={6}
+                              disabled={isSubmitting}
                             />
                           </div>
                         </div>
@@ -647,7 +803,8 @@ const Admin: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleDeleteRegistration(registration.id)}
-                            className="text-red-600 hover:text-red-800 transition-colors"
+                            disabled={isSubmitting}
+                            className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
@@ -681,12 +838,15 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewPrice(Number(e.target.value))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="3000"
+                        disabled={isSubmitting}
                       />
                     </div>
                     <button
                       onClick={handleUpdatePrice}
-                      className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors"
+                      disabled={isSubmitting}
+                      className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors disabled:opacity-50 flex items-center"
                     >
+                      {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                       Update Price
                     </button>
                   </div>
@@ -711,6 +871,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewContactInfo(prev => ({ ...prev, phone: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="+254 700 123 456"
+                        disabled={isSubmitting}
                       />
                     </div>
                     <div>
@@ -723,6 +884,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewContactInfo(prev => ({ ...prev, email: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="info@kingdombusinessstudio.com"
+                        disabled={isSubmitting}
                       />
                     </div>
                     <div>
@@ -735,6 +897,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewContactInfo(prev => ({ ...prev, whatsapp: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="+254700123456"
+                        disabled={isSubmitting}
                       />
                     </div>
                     <div>
@@ -747,13 +910,16 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewContactInfo(prev => ({ ...prev, location: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="Nairobi, Kenya"
+                        disabled={isSubmitting}
                       />
                     </div>
                   </div>
                   <button
                     onClick={handleUpdateContactInfo}
-                    className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors"
+                    disabled={isSubmitting}
+                    className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors disabled:opacity-50 flex items-center"
                   >
+                    {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                     Update Contact Info
                   </button>
                 </div>
@@ -775,6 +941,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewSocialMedia(prev => ({ ...prev, facebook: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="https://facebook.com/kingdombusinessstudio"
+                        disabled={isSubmitting}
                       />
                     </div>
                     <div>
@@ -787,6 +954,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewSocialMedia(prev => ({ ...prev, instagram: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="https://instagram.com/kingdombusinessstudio"
+                        disabled={isSubmitting}
                       />
                     </div>
                     <div>
@@ -799,6 +967,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewSocialMedia(prev => ({ ...prev, twitter: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="https://twitter.com/kingdombusiness"
+                        disabled={isSubmitting}
                       />
                     </div>
                     <div>
@@ -811,13 +980,16 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewSocialMedia(prev => ({ ...prev, linkedin: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="https://linkedin.com/company/kingdom-business-studio"
+                        disabled={isSubmitting}
                       />
                     </div>
                   </div>
                   <button
                     onClick={handleUpdateSocialMedia}
-                    className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors"
+                    disabled={isSubmitting}
+                    className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors disabled:opacity-50 flex items-center"
                   >
+                    {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                     Update Social Media Links
                   </button>
                 </div>
@@ -838,27 +1010,30 @@ const Admin: React.FC = () => {
                         onChange={(e) => setNewPassword(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="Enter new password"
+                        disabled={isSubmitting}
                       />
                     </div>
                     <button
                       onClick={handleUpdatePassword}
-                      className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors"
+                      disabled={isSubmitting}
+                      className="bg-royal-blue text-white px-4 py-2 rounded-lg hover:bg-deep-blue transition-colors disabled:opacity-50 flex items-center"
                     >
+                      {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                       Update Password
                     </button>
                   </div>
                 </div>
 
-                {/* Google Sheets Integration */}
+                {/* Database Info */}
                 <div className="bg-gray-50 rounded-lg p-6">
                   <h3 className="text-lg font-playfair font-semibold text-gray-900 mb-4">
-                    Google Sheets Integration
+                    Database Integration
                   </h3>
                   <p className="text-gray-600 mb-2">
-                    Registration data is automatically logged to the console for Google Sheets integration.
+                    All data is now stored in Supabase and syncs across all devices in real-time.
                   </p>
                   <p className="text-sm text-gray-500">
-                    Spreadsheet URL: https://docs.google.com/spreadsheets/d/1ibyfnjysQazSozfkMQkjuic-wzIaO3zv2mhMqser1Ow/edit
+                    Changes made by the admin will be immediately visible to all users accessing the website.
                   </p>
                 </div>
               </div>

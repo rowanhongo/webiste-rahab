@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Business, BlogPost, Program } from '../types';
-import { mockBusinesses, mockBlogPosts, programs } from '../data/mockData';
+import { AdminService } from '../services/adminService';
 
 interface ContactInfo {
   phone: string;
@@ -26,23 +26,25 @@ interface AdminContextType {
   contactInfo: ContactInfo;
   socialMediaLinks: SocialMediaLinks;
   adminPassword: string;
-  login: (username: string, password: string) => boolean;
+  loading: boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  addBusiness: (business: Omit<Business, 'id'>) => void;
-  removeBusiness: (id: string) => void;
-  updateBusiness: (id: string, business: Partial<Business>) => void;
-  addBlogPost: (post: Omit<BlogPost, 'id'>) => void;
-  removeBlogPost: (id: string) => void;
-  updateBlogPost: (id: string, post: Partial<BlogPost>) => void;
-  updateProgram: (id: string, program: Partial<Program>) => void;
-  addRegistration: (registration: any) => void;
+  addBusiness: (business: Omit<Business, 'id'>) => Promise<void>;
+  removeBusiness: (id: string) => Promise<void>;
+  updateBusiness: (id: string, business: Partial<Business>) => Promise<void>;
+  addBlogPost: (post: Omit<BlogPost, 'id'>) => Promise<void>;
+  removeBlogPost: (id: string) => Promise<void>;
+  updateBlogPost: (id: string, post: Partial<BlogPost>) => Promise<void>;
+  updateProgram: (id: string, program: Partial<Program>) => Promise<void>;
+  addRegistration: (registration: any) => Promise<void>;
   getRegistrations: () => any[];
-  removeRegistration: (id: string) => void;
-  updateRegistrationPrice: (price: number) => void;
-  updateContactInfo: (info: ContactInfo) => void;
-  updateSocialMediaLinks: (links: SocialMediaLinks) => void;
-  updateAdminPassword: (newPassword: string) => void;
+  removeRegistration: (id: string) => Promise<void>;
+  updateRegistrationPrice: (price: number) => Promise<void>;
+  updateContactInfo: (info: ContactInfo) => Promise<void>;
+  updateSocialMediaLinks: (links: SocialMediaLinks) => Promise<void>;
+  updateAdminPassword: (newPassword: string) => Promise<void>;
   sendContactMessage: (message: { name: string; email: string; message: string }) => void;
+  refreshData: () => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -57,12 +59,11 @@ export const useAdmin = () => {
 
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [businesses, setBusinesses] = useState<Business[]>(mockBusinesses);
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(mockBlogPosts);
-  const [programsData, setProgramsData] = useState<Program[]>(programs);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [registrationPrice, setRegistrationPrice] = useState(3000);
-  const [adminPassword, setAdminPassword] = useState('kingdomstudio2025');
   const [contactInfo, setContactInfo] = useState<ContactInfo>({
     phone: '+254 700 123 456',
     email: 'info@kingdombusinessstudio.com',
@@ -75,62 +76,73 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     twitter: 'https://twitter.com/kingdombusiness',
     linkedin: 'https://linkedin.com/company/kingdom-business-studio',
   });
+  const [adminPassword, setAdminPassword] = useState('kingdomstudio2025');
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load all data in parallel
+      const [
+        businessesData,
+        blogPostsData,
+        programsData,
+        registrationsData,
+        priceData,
+        contactData,
+        socialData
+      ] = await Promise.all([
+        AdminService.getBusinesses(),
+        AdminService.getBlogPosts(),
+        AdminService.getPrograms(),
+        AdminService.getRegistrations(),
+        AdminService.getRegistrationPrice(),
+        AdminService.getContactInfo(),
+        AdminService.getSocialMediaLinks()
+      ]);
+
+      setBusinesses(businessesData);
+      setBlogPosts(blogPostsData);
+      setPrograms(programsData);
+      setRegistrations(registrationsData);
+      setRegistrationPrice(priceData);
+      setContactInfo(contactData);
+      setSocialMediaLinks(socialData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshData = async () => {
+    await loadData();
+  };
 
   useEffect(() => {
+    loadData();
+    
+    // Check if user was previously authenticated
     const authStatus = localStorage.getItem('kbs-admin-auth');
     if (authStatus === 'true') {
       setIsAuthenticated(true);
     }
-
-    // Load saved data from localStorage
-    const savedBusinesses = localStorage.getItem('kbs-businesses');
-    if (savedBusinesses) {
-      setBusinesses(JSON.parse(savedBusinesses));
-    }
-
-    const savedBlogPosts = localStorage.getItem('kbs-blog-posts');
-    if (savedBlogPosts) {
-      setBlogPosts(JSON.parse(savedBlogPosts));
-    }
-
-    const savedPrograms = localStorage.getItem('kbs-programs');
-    if (savedPrograms) {
-      setProgramsData(JSON.parse(savedPrograms));
-    }
-
-    const savedRegistrations = localStorage.getItem('kbs-registrations');
-    if (savedRegistrations) {
-      setRegistrations(JSON.parse(savedRegistrations));
-    }
-
-    const savedPrice = localStorage.getItem('kbs-registration-price');
-    if (savedPrice) {
-      setRegistrationPrice(JSON.parse(savedPrice));
-    }
-
-    const savedContactInfo = localStorage.getItem('kbs-contact-info');
-    if (savedContactInfo) {
-      setContactInfo(JSON.parse(savedContactInfo));
-    }
-
-    const savedSocialMedia = localStorage.getItem('kbs-social-media');
-    if (savedSocialMedia) {
-      setSocialMediaLinks(JSON.parse(savedSocialMedia));
-    }
-
-    const savedPassword = localStorage.getItem('kbs-admin-password');
-    if (savedPassword) {
-      setAdminPassword(savedPassword);
-    }
   }, []);
 
-  const login = (username: string, password: string): boolean => {
-    if (username === 'admin' && password === adminPassword) {
-      setIsAuthenticated(true);
-      localStorage.setItem('kbs-admin-auth', 'true');
-      return true;
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const success = await AdminService.login(username, password);
+      if (success) {
+        setIsAuthenticated(true);
+        localStorage.setItem('kbs-admin-auth', 'true');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
@@ -138,92 +150,71 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem('kbs-admin-auth');
   };
 
-  const addBusiness = (business: Omit<Business, 'id'>) => {
-    const newBusiness = { ...business, id: Date.now().toString() };
-    const updatedBusinesses = [...businesses, newBusiness];
-    setBusinesses(updatedBusinesses);
-    localStorage.setItem('kbs-businesses', JSON.stringify(updatedBusinesses));
+  const addBusiness = async (business: Omit<Business, 'id'>) => {
+    await AdminService.addBusiness(business);
+    await refreshData();
   };
 
-  const removeBusiness = (id: string) => {
-    const updatedBusinesses = businesses.filter(b => b.id !== id);
-    setBusinesses(updatedBusinesses);
-    localStorage.setItem('kbs-businesses', JSON.stringify(updatedBusinesses));
+  const removeBusiness = async (id: string) => {
+    await AdminService.removeBusiness(id);
+    await refreshData();
   };
 
-  const updateBusiness = (id: string, business: Partial<Business>) => {
-    const updatedBusinesses = businesses.map(b => 
-      b.id === id ? { ...b, ...business } : b
-    );
-    setBusinesses(updatedBusinesses);
-    localStorage.setItem('kbs-businesses', JSON.stringify(updatedBusinesses));
+  const updateBusiness = async (id: string, business: Partial<Business>) => {
+    await AdminService.updateBusiness(id, business);
+    await refreshData();
   };
 
-  const addBlogPost = (post: Omit<BlogPost, 'id'>) => {
-    const newPost = { ...post, id: Date.now().toString() };
-    const updatedPosts = [newPost, ...blogPosts];
-    setBlogPosts(updatedPosts);
-    localStorage.setItem('kbs-blog-posts', JSON.stringify(updatedPosts));
+  const addBlogPost = async (post: Omit<BlogPost, 'id'>) => {
+    await AdminService.addBlogPost(post);
+    await refreshData();
   };
 
-  const removeBlogPost = (id: string) => {
-    const updatedPosts = blogPosts.filter(p => p.id !== id);
-    setBlogPosts(updatedPosts);
-    localStorage.setItem('kbs-blog-posts', JSON.stringify(updatedPosts));
+  const removeBlogPost = async (id: string) => {
+    await AdminService.removeBlogPost(id);
+    await refreshData();
   };
 
-  const updateBlogPost = (id: string, post: Partial<BlogPost>) => {
-    const updatedPosts = blogPosts.map(p => 
-      p.id === id ? { ...p, ...post } : p
-    );
-    setBlogPosts(updatedPosts);
-    localStorage.setItem('kbs-blog-posts', JSON.stringify(updatedPosts));
+  const updateBlogPost = async (id: string, post: Partial<BlogPost>) => {
+    await AdminService.updateBlogPost(id, post);
+    await refreshData();
   };
 
-  const updateProgram = (id: string, program: Partial<Program>) => {
-    const updatedPrograms = programsData.map(p => 
-      p.id === id ? { ...p, ...program } : p
-    );
-    setProgramsData(updatedPrograms);
-    localStorage.setItem('kbs-programs', JSON.stringify(updatedPrograms));
+  const updateProgram = async (id: string, program: Partial<Program>) => {
+    await AdminService.updateProgram(id, program);
+    await refreshData();
   };
 
-  const addRegistration = (registration: any) => {
-    const newRegistration = { ...registration, id: Date.now().toString(), timestamp: new Date().toISOString() };
-    const updatedRegistrations = [...registrations, newRegistration];
-    setRegistrations(updatedRegistrations);
-    localStorage.setItem('kbs-registrations', JSON.stringify(updatedRegistrations));
-    
-    // Send to Google Sheets (in a real app, this would be a proper API call)
-    console.log('Registration data for Google Sheets:', newRegistration);
+  const addRegistration = async (registration: any) => {
+    await AdminService.addRegistration(registration);
+    await refreshData();
   };
 
   const getRegistrations = () => registrations;
 
-  const removeRegistration = (id: string) => {
-    const updatedRegistrations = registrations.filter(r => r.id !== id);
-    setRegistrations(updatedRegistrations);
-    localStorage.setItem('kbs-registrations', JSON.stringify(updatedRegistrations));
+  const removeRegistration = async (id: string) => {
+    await AdminService.removeRegistration(id);
+    await refreshData();
   };
 
-  const updateRegistrationPrice = (price: number) => {
-    setRegistrationPrice(price);
-    localStorage.setItem('kbs-registration-price', JSON.stringify(price));
+  const updateRegistrationPrice = async (price: number) => {
+    await AdminService.updateRegistrationPrice(price);
+    await refreshData();
   };
 
-  const updateContactInfo = (info: ContactInfo) => {
-    setContactInfo(info);
-    localStorage.setItem('kbs-contact-info', JSON.stringify(info));
+  const updateContactInfo = async (info: ContactInfo) => {
+    await AdminService.updateContactInfo(info);
+    await refreshData();
   };
 
-  const updateSocialMediaLinks = (links: SocialMediaLinks) => {
-    setSocialMediaLinks(links);
-    localStorage.setItem('kbs-social-media', JSON.stringify(links));
+  const updateSocialMediaLinks = async (links: SocialMediaLinks) => {
+    await AdminService.updateSocialMediaLinks(links);
+    await refreshData();
   };
 
-  const updateAdminPassword = (newPassword: string) => {
+  const updateAdminPassword = async (newPassword: string) => {
+    await AdminService.updateAdminPassword(newPassword);
     setAdminPassword(newPassword);
-    localStorage.setItem('kbs-admin-password', newPassword);
   };
 
   const sendContactMessage = (message: { name: string; email: string; message: string }) => {
@@ -250,12 +241,13 @@ Sent from Kingdom Business Studio Contact Form
         isAuthenticated,
         businesses,
         blogPosts,
-        programs: programsData,
+        programs,
         registrations,
         registrationPrice,
         contactInfo,
         socialMediaLinks,
         adminPassword,
+        loading,
         login,
         logout,
         addBusiness,
@@ -273,6 +265,7 @@ Sent from Kingdom Business Studio Contact Form
         updateSocialMediaLinks,
         updateAdminPassword,
         sendContactMessage,
+        refreshData,
       }}
     >
       {children}
