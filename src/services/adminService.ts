@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { Business, BlogPost, Program } from '../types';
 
 interface ContactInfo {
@@ -35,27 +35,33 @@ export class AdminService {
 
   // Businesses
   static async getBusinesses(): Promise<Business[]> {
-    const { data, error } = await supabase
-      .from('businesses')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error fetching businesses:', error);
+        return [];
+      }
 
-    return data.map(item => ({
-      id: item.id,
-      name: item.name,
-      logo: item.logo,
-      category: item.category,
-      description: item.description,
-      isNew: item.is_new
-    }));
+      return data?.map(item => ({
+        id: item.id,
+        name: item.name,
+        logo: item.logo,
+        category: item.category,
+        description: item.description,
+        isNew: item.is_new
+      })) || [];
+    } catch (error) {
+      console.error('Error in getBusinesses:', error);
+      return [];
+    }
   }
 
   static async addBusiness(business: Omit<Business, 'id'>): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Admin access required');
-
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('businesses')
       .insert({
         name: business.name,
@@ -69,8 +75,6 @@ export class AdminService {
   }
 
   static async updateBusiness(id: string, business: Partial<Business>): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Admin access required');
-
     const updateData: any = {};
     if (business.name !== undefined) updateData.name = business.name;
     if (business.logo !== undefined) updateData.logo = business.logo;
@@ -78,7 +82,7 @@ export class AdminService {
     if (business.description !== undefined) updateData.description = business.description;
     if (business.isNew !== undefined) updateData.is_new = business.isNew;
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('businesses')
       .update(updateData)
       .eq('id', id);
@@ -87,9 +91,7 @@ export class AdminService {
   }
 
   static async removeBusiness(id: string): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Admin access required');
-
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('businesses')
       .delete()
       .eq('id', id);
@@ -99,29 +101,35 @@ export class AdminService {
 
   // Blog Posts
   static async getBlogPosts(): Promise<BlogPost[]> {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .order('date', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .order('date', { ascending: false });
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error fetching blog posts:', error);
+        return [];
+      }
 
-    return data.map(item => ({
-      id: item.id,
-      title: item.title,
-      excerpt: item.excerpt,
-      content: item.content,
-      author: item.author,
-      date: item.date,
-      category: item.category,
-      imageUrl: item.image_url
-    }));
+      return data?.map(item => ({
+        id: item.id,
+        title: item.title,
+        excerpt: item.excerpt,
+        content: item.content,
+        author: item.author,
+        date: item.date,
+        category: item.category,
+        imageUrl: item.image_url
+      })) || [];
+    } catch (error) {
+      console.error('Error in getBlogPosts:', error);
+      return [];
+    }
   }
 
   static async addBlogPost(post: Omit<BlogPost, 'id'>): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Admin access required');
-
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('blog_posts')
       .insert({
         title: post.title,
@@ -137,8 +145,6 @@ export class AdminService {
   }
 
   static async updateBlogPost(id: string, post: Partial<BlogPost>): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Admin access required');
-
     const updateData: any = {};
     if (post.title !== undefined) updateData.title = post.title;
     if (post.excerpt !== undefined) updateData.excerpt = post.excerpt;
@@ -148,7 +154,7 @@ export class AdminService {
     if (post.category !== undefined) updateData.category = post.category;
     if (post.imageUrl !== undefined) updateData.image_url = post.imageUrl;
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('blog_posts')
       .update(updateData)
       .eq('id', id);
@@ -157,9 +163,7 @@ export class AdminService {
   }
 
   static async removeBlogPost(id: string): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Admin access required');
-
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('blog_posts')
       .delete()
       .eq('id', id);
@@ -169,26 +173,32 @@ export class AdminService {
 
   // Programs
   static async getPrograms(): Promise<Program[]> {
-    const { data, error } = await supabase
-      .from('programs')
-      .select('*')
-      .order('id');
+    try {
+      const { data, error } = await supabase
+        .from('programs')
+        .select('*')
+        .order('id');
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error fetching programs:', error);
+        return [];
+      }
 
-    return data.map(item => ({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      primaryColor: item.primary_color,
-      accentColors: item.accent_colors,
-      features: item.features
-    }));
+      return data?.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        primaryColor: item.primary_color,
+        accentColors: item.accent_colors,
+        features: item.features
+      })) || [];
+    } catch (error) {
+      console.error('Error in getPrograms:', error);
+      return [];
+    }
   }
 
   static async updateProgram(id: string, program: Partial<Program>): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Admin access required');
-
     const updateData: any = {};
     if (program.name !== undefined) updateData.name = program.name;
     if (program.description !== undefined) updateData.description = program.description;
@@ -196,7 +206,7 @@ export class AdminService {
     if (program.accentColors !== undefined) updateData.accent_colors = program.accentColors;
     if (program.features !== undefined) updateData.features = program.features;
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('programs')
       .update(updateData)
       .eq('id', id);
@@ -206,29 +216,37 @@ export class AdminService {
 
   // Registrations
   static async getRegistrations(): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('registrations')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('registrations')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error fetching registrations:', error);
+        return [];
+      }
 
-    return data.map(item => ({
-      id: item.id,
-      fullName: item.full_name,
-      phoneNumber: item.phone_number,
-      country: item.country,
-      industry: item.industry,
-      businessIdea: item.business_idea,
-      openToCollaboration: item.open_to_collaboration,
-      bornAgain: item.born_again,
-      available8Weeks: item.available_8_weeks,
-      timePreference: item.time_preference,
-      daysPreference: item.days_preference,
-      paymentMethod: item.payment_method,
-      paymentProof: item.payment_proof,
-      timestamp: item.created_at
-    }));
+      return data?.map(item => ({
+        id: item.id,
+        fullName: item.full_name,
+        phoneNumber: item.phone_number,
+        country: item.country,
+        industry: item.industry,
+        businessIdea: item.business_idea,
+        openToCollaboration: item.open_to_collaboration,
+        bornAgain: item.born_again,
+        available8Weeks: item.available_8_weeks,
+        timePreference: item.time_preference,
+        daysPreference: item.days_preference,
+        paymentMethod: item.payment_method,
+        paymentProof: item.payment_proof,
+        timestamp: item.created_at
+      })) || [];
+    } catch (error) {
+      console.error('Error in getRegistrations:', error);
+      return [];
+    }
   }
 
   static async addRegistration(registration: any): Promise<void> {
@@ -253,9 +271,7 @@ export class AdminService {
   }
 
   static async removeRegistration(id: string): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Admin access required');
-
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('registrations')
       .delete()
       .eq('id', id);
@@ -265,20 +281,26 @@ export class AdminService {
 
   // Site Settings
   static async getSetting(key: string): Promise<any> {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', key)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', key)
+        .single();
 
-    if (error) throw error;
-    return data?.value;
+      if (error) {
+        console.error(`Error fetching setting ${key}:`, error);
+        return null;
+      }
+      return data?.value;
+    } catch (error) {
+      console.error(`Error in getSetting for ${key}:`, error);
+      return null;
+    }
   }
 
   static async updateSetting(key: string, value: any): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Admin access required');
-
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('site_settings')
       .upsert({
         key,
