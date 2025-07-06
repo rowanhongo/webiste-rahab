@@ -14,12 +14,23 @@ const finalUrl = supabaseUrl || defaultUrl;
 const finalAnonKey = supabaseAnonKey || defaultAnonKey;
 const finalServiceKey = supabaseServiceKey || defaultServiceKey;
 
+console.log('Supabase configuration:', {
+  url: finalUrl,
+  hasAnonKey: !!finalAnonKey,
+  hasServiceKey: !!finalServiceKey
+});
+
 if (!finalUrl || !finalAnonKey) {
   console.error('Missing Supabase configuration');
 }
 
 // Public client for read operations and user registrations
-export const supabase = createClient(finalUrl, finalAnonKey);
+export const supabase = createClient(finalUrl, finalAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  }
+});
 
 // Admin client with service role for admin operations
 export const supabaseAdmin = createClient(
@@ -38,3 +49,13 @@ export const supabaseAdmin = createClient(
     }
   }
 );
+
+// Test connection on initialization
+supabase.from('businesses').select('count', { count: 'exact', head: true })
+  .then(({ error }) => {
+    if (error) {
+      console.error('Supabase connection test failed:', error);
+    } else {
+      console.log('Supabase connection successful');
+    }
+  });

@@ -84,7 +84,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setLoading(true);
       console.log('Loading all data...');
       
-      // Load all data in parallel with error handling
+      // Load all data with proper error handling
       const [
         businessesData,
         blogPostsData,
@@ -92,48 +92,58 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         priceData,
         contactData,
         socialData
-      ] = await Promise.allSettled([
-        AdminService.getBusinesses(),
-        AdminService.getBlogPosts(),
-        AdminService.getPrograms(),
-        AdminService.getRegistrationPrice(),
-        AdminService.getContactInfo(),
-        AdminService.getSocialMediaLinks()
+      ] = await Promise.all([
+        AdminService.getBusinesses().catch(err => {
+          console.error('Failed to load businesses:', err);
+          return [];
+        }),
+        AdminService.getBlogPosts().catch(err => {
+          console.error('Failed to load blog posts:', err);
+          return [];
+        }),
+        AdminService.getPrograms().catch(err => {
+          console.error('Failed to load programs:', err);
+          return AdminService.getDefaultPrograms();
+        }),
+        AdminService.getRegistrationPrice().catch(err => {
+          console.error('Failed to load registration price:', err);
+          return 3000;
+        }),
+        AdminService.getContactInfo().catch(err => {
+          console.error('Failed to load contact info:', err);
+          return {
+            phone: '+254 700 123 456',
+            email: 'info@kingdombusinessstudio.com',
+            whatsapp: '+254700123456',
+            location: 'Nairobi, Kenya',
+          };
+        }),
+        AdminService.getSocialMediaLinks().catch(err => {
+          console.error('Failed to load social media links:', err);
+          return {
+            facebook: 'https://facebook.com/kingdombusinessstudio',
+            instagram: 'https://instagram.com/kingdombusinessstudio',
+            twitter: 'https://twitter.com/kingdombusiness',
+            linkedin: 'https://linkedin.com/company/kingdom-business-studio',
+          };
+        })
       ]);
 
-      // Handle results with fallbacks
-      const newBusinesses = businessesData.status === 'fulfilled' ? businessesData.value : [];
-      const newBlogPosts = blogPostsData.status === 'fulfilled' ? blogPostsData.value : [];
-      const newPrograms = programsData.status === 'fulfilled' ? programsData.value : [];
-      const newPrice = priceData.status === 'fulfilled' ? priceData.value : 3000;
-      const newContactInfo = contactData.status === 'fulfilled' ? contactData.value : {
-        phone: '+254 700 123 456',
-        email: 'info@kingdombusinessstudio.com',
-        whatsapp: '+254700123456',
-        location: 'Nairobi, Kenya',
-      };
-      const newSocialLinks = socialData.status === 'fulfilled' ? socialData.value : {
-        facebook: 'https://facebook.com/kingdombusinessstudio',
-        instagram: 'https://instagram.com/kingdombusinessstudio',
-        twitter: 'https://twitter.com/kingdombusiness',
-        linkedin: 'https://linkedin.com/company/kingdom-business-studio',
-      };
-
       console.log('Data loaded:', {
-        businesses: newBusinesses.length,
-        blogPosts: newBlogPosts.length,
-        programs: newPrograms.length,
-        price: newPrice,
-        contactInfo: newContactInfo,
-        socialLinks: newSocialLinks
+        businesses: businessesData.length,
+        blogPosts: blogPostsData.length,
+        programs: programsData.length,
+        price: priceData,
+        contactInfo: contactData,
+        socialLinks: socialData
       });
 
-      setBusinesses(newBusinesses);
-      setBlogPosts(newBlogPosts);
-      setPrograms(newPrograms);
-      setRegistrationPrice(newPrice);
-      setContactInfo(newContactInfo);
-      setSocialMediaLinks(newSocialLinks);
+      setBusinesses(businessesData);
+      setBlogPosts(blogPostsData);
+      setPrograms(programsData);
+      setRegistrationPrice(priceData);
+      setContactInfo(contactData);
+      setSocialMediaLinks(socialData);
 
       // Load registrations only if authenticated
       if (AdminService.isAdminAuthenticated()) {
@@ -148,11 +158,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      // Set default values on error
-      setBusinesses([]);
-      setBlogPosts([]);
-      setPrograms([]);
-      setRegistrationPrice(3000);
     } finally {
       setLoading(false);
     }
