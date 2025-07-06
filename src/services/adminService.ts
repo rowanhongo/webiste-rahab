@@ -50,6 +50,12 @@ export class AdminService {
     return localStorage.getItem('kbs-admin-session') === 'authenticated';
   }
 
+  // Get the appropriate client for operations
+  static getClient() {
+    // Always use supabaseAdmin for write operations to bypass RLS
+    return supabaseAdmin;
+  }
+
   // Businesses
   static async getBusinesses(): Promise<Business[]> {
     try {
@@ -83,7 +89,8 @@ export class AdminService {
     }
 
     try {
-      const { error } = await supabaseAdmin
+      const client = this.getClient();
+      const { error } = await client
         .from('businesses')
         .insert({
           name: business.name,
@@ -116,7 +123,8 @@ export class AdminService {
       if (business.description !== undefined) updateData.description = business.description;
       if (business.isNew !== undefined) updateData.is_new = business.isNew;
 
-      const { error } = await supabaseAdmin
+      const client = this.getClient();
+      const { error } = await client
         .from('businesses')
         .update(updateData)
         .eq('id', id);
@@ -137,7 +145,8 @@ export class AdminService {
     }
 
     try {
-      const { error } = await supabaseAdmin
+      const client = this.getClient();
+      const { error } = await client
         .from('businesses')
         .delete()
         .eq('id', id);
@@ -187,7 +196,8 @@ export class AdminService {
     }
 
     try {
-      const { error } = await supabaseAdmin
+      const client = this.getClient();
+      const { error } = await client
         .from('blog_posts')
         .insert({
           title: post.title,
@@ -224,7 +234,8 @@ export class AdminService {
       if (post.category !== undefined) updateData.category = post.category;
       if (post.imageUrl !== undefined) updateData.image_url = post.imageUrl;
 
-      const { error } = await supabaseAdmin
+      const client = this.getClient();
+      const { error } = await client
         .from('blog_posts')
         .update(updateData)
         .eq('id', id);
@@ -245,7 +256,8 @@ export class AdminService {
     }
 
     try {
-      const { error } = await supabaseAdmin
+      const client = this.getClient();
+      const { error } = await client
         .from('blog_posts')
         .delete()
         .eq('id', id);
@@ -300,7 +312,8 @@ export class AdminService {
       if (program.accentColors !== undefined) updateData.accent_colors = program.accentColors;
       if (program.features !== undefined) updateData.features = program.features;
 
-      const { error } = await supabaseAdmin
+      const client = this.getClient();
+      const { error } = await client
         .from('programs')
         .update(updateData)
         .eq('id', id);
@@ -322,7 +335,8 @@ export class AdminService {
     }
 
     try {
-      const { data, error } = await supabaseAdmin
+      const client = this.getClient();
+      const { data, error } = await client
         .from('registrations')
         .select('*')
         .order('created_at', { ascending: false });
@@ -389,7 +403,8 @@ export class AdminService {
     }
 
     try {
-      const { error } = await supabaseAdmin
+      const client = this.getClient();
+      const { error } = await client
         .from('registrations')
         .delete()
         .eq('id', id);
@@ -430,7 +445,8 @@ export class AdminService {
     }
 
     try {
-      const { error } = await supabaseAdmin
+      const client = this.getClient();
+      const { error } = await client
         .from('site_settings')
         .upsert({
           key,
