@@ -1,11 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Crown, Eye, EyeOff, Users, FileText, Settings, Building, DollarSign, Phone, Mail, MapPin, MessageCircle, Facebook, Instagram, Twitter, Linkedin, Plus, Edit, Trash2, Save, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { 
+  Crown, 
+  Eye, 
+  EyeOff, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Save, 
+  X, 
+  Users, 
+  FileText, 
+  Briefcase, 
+  Settings,
+  ArrowLeft,
+  Calendar,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  DollarSign
+} from 'lucide-react';
 import { useAdmin } from '../context/AdminContext';
 import { Business, BlogPost, Program } from '../types';
+import ImageUpload from '../components/ImageUpload';
 
 const Admin: React.FC = () => {
-  const navigate = useNavigate();
   const {
     isAuthenticated,
     businesses,
@@ -34,18 +54,9 @@ const Admin: React.FC = () => {
 
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeTab, setActiveTab] = useState('businesses');
-
-  // Form states
-  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
-  const [editingBlogPost, setEditingBlogPost] = useState<BlogPost | null>(null);
-  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
-  const [showAddBusiness, setShowAddBusiness] = useState(false);
-  const [showAddBlogPost, setShowAddBlogPost] = useState(false);
-  const [editingSettings, setEditingSettings] = useState(false);
-
+  const [editingItem, setEditingItem] = useState<string | null>(null);
   const [newBusiness, setNewBusiness] = useState<Omit<Business, 'id'>>({
     name: '',
     logo: '',
@@ -53,7 +64,6 @@ const Admin: React.FC = () => {
     description: '',
     isNew: false,
   });
-
   const [newBlogPost, setNewBlogPost] = useState<Omit<BlogPost, 'id'>>({
     title: '',
     excerpt: '',
@@ -63,7 +73,9 @@ const Admin: React.FC = () => {
     category: '',
     imageUrl: '',
   });
-
+  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+  const [editingBlogPost, setEditingBlogPost] = useState<BlogPost | null>(null);
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [settingsForm, setSettingsForm] = useState({
     registrationPrice: registrationPrice,
     contactInfo: contactInfo,
@@ -72,45 +84,42 @@ const Admin: React.FC = () => {
   });
 
   useEffect(() => {
-    if (isAuthenticated) {
-      setSettingsForm({
-        registrationPrice: registrationPrice,
-        contactInfo: contactInfo,
-        socialMediaLinks: socialMediaLinks,
-        newPassword: '',
-      });
-    }
-  }, [isAuthenticated, registrationPrice, contactInfo, socialMediaLinks]);
+    setSettingsForm(prev => ({
+      ...prev,
+      registrationPrice,
+      contactInfo,
+      socialMediaLinks,
+    }));
+  }, [registrationPrice, contactInfo, socialMediaLinks]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    setLoginError('');
-
     try {
       const success = await login(loginForm.username, loginForm.password);
       if (!success) {
-        setLoginError('Invalid credentials');
+        alert('Invalid credentials');
       }
     } catch (error) {
-      setLoginError('Login failed. Please try again.');
+      console.error('Login error:', error);
+      alert('Login failed. Please try again.');
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
   const handleAddBusiness = async () => {
+    if (!newBusiness.name || !newBusiness.category || !newBusiness.description) {
+      alert('Please fill in all required fields');
+      return;
+    }
     try {
       await addBusiness(newBusiness);
       setNewBusiness({ name: '', logo: '', category: '', description: '', isNew: false });
-      setShowAddBusiness(false);
+      alert('Business added successfully!');
     } catch (error) {
       console.error('Error adding business:', error);
+      alert('Failed to add business. Please try again.');
     }
   };
 
@@ -119,12 +128,31 @@ const Admin: React.FC = () => {
     try {
       await updateBusiness(editingBusiness.id, editingBusiness);
       setEditingBusiness(null);
+      setEditingItem(null);
+      alert('Business updated successfully!');
     } catch (error) {
       console.error('Error updating business:', error);
+      alert('Failed to update business. Please try again.');
+    }
+  };
+
+  const handleDeleteBusiness = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this business?')) {
+      try {
+        await removeBusiness(id);
+        alert('Business deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting business:', error);
+        alert('Failed to delete business. Please try again.');
+      }
     }
   };
 
   const handleAddBlogPost = async () => {
+    if (!newBlogPost.title || !newBlogPost.excerpt || !newBlogPost.content || !newBlogPost.author || !newBlogPost.category) {
+      alert('Please fill in all required fields');
+      return;
+    }
     try {
       await addBlogPost(newBlogPost);
       setNewBlogPost({
@@ -136,9 +164,10 @@ const Admin: React.FC = () => {
         category: '',
         imageUrl: '',
       });
-      setShowAddBlogPost(false);
+      alert('Blog post added successfully!');
     } catch (error) {
       console.error('Error adding blog post:', error);
+      alert('Failed to add blog post. Please try again.');
     }
   };
 
@@ -147,8 +176,23 @@ const Admin: React.FC = () => {
     try {
       await updateBlogPost(editingBlogPost.id, editingBlogPost);
       setEditingBlogPost(null);
+      setEditingItem(null);
+      alert('Blog post updated successfully!');
     } catch (error) {
       console.error('Error updating blog post:', error);
+      alert('Failed to update blog post. Please try again.');
+    }
+  };
+
+  const handleDeleteBlogPost = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this blog post?')) {
+      try {
+        await removeBlogPost(id);
+        alert('Blog post deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting blog post:', error);
+        alert('Failed to delete blog post. Please try again.');
+      }
     }
   };
 
@@ -157,12 +201,27 @@ const Admin: React.FC = () => {
     try {
       await updateProgram(editingProgram.id, editingProgram);
       setEditingProgram(null);
+      setEditingItem(null);
+      alert('Program updated successfully!');
     } catch (error) {
       console.error('Error updating program:', error);
+      alert('Failed to update program. Please try again.');
     }
   };
 
-  const handleSaveSettings = async () => {
+  const handleDeleteRegistration = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this registration?')) {
+      try {
+        await removeRegistration(id);
+        alert('Registration deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting registration:', error);
+        alert('Failed to delete registration. Please try again.');
+      }
+    }
+  };
+
+  const handleUpdateSettings = async () => {
     try {
       await updateRegistrationPrice(settingsForm.registrationPrice);
       await updateContactInfo(settingsForm.contactInfo);
@@ -173,9 +232,10 @@ const Admin: React.FC = () => {
         setSettingsForm(prev => ({ ...prev, newPassword: '' }));
       }
       
-      setEditingSettings(false);
+      alert('Settings updated successfully!');
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('Error updating settings:', error);
+      alert('Failed to update settings. Please try again.');
     }
   };
 
@@ -183,7 +243,7 @@ const Admin: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <Crown className="w-12 h-12 text-royal-blue mx-auto mb-4 animate-spin" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-royal-blue mx-auto mb-4"></div>
           <p className="text-gray-600 font-inter">Loading...</p>
         </div>
       </div>
@@ -198,14 +258,8 @@ const Admin: React.FC = () => {
             <Crown className="w-12 h-12 text-royal-blue mx-auto mb-4" />
             <h1 className="text-2xl font-playfair font-bold text-gray-900">Admin Login</h1>
           </div>
-
-          {loginError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {loginError}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
+          
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
                 Username
@@ -219,7 +273,7 @@ const Admin: React.FC = () => {
                 required
               />
             </div>
-
+            
             <div>
               <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
                 Password
@@ -236,13 +290,13 @@ const Admin: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
-
+            
             <button
               type="submit"
               disabled={isLoggingIn}
@@ -251,401 +305,444 @@ const Admin: React.FC = () => {
               {isLoggingIn ? 'Logging in...' : 'Login'}
             </button>
           </form>
-
+          
           <div className="mt-6 text-center">
-            <button
-              onClick={() => navigate('/')}
+            <Link
+              to="/"
               className="text-royal-blue hover:text-deep-blue transition-colors font-inter text-sm"
             >
               ← Back to Website
-            </button>
+            </Link>
           </div>
         </div>
       </div>
     );
   }
 
-  const tabs = [
-    { id: 'businesses', label: 'Businesses', icon: Building },
-    { id: 'blog', label: 'Blog Posts', icon: FileText },
-    { id: 'programs', label: 'Programs', icon: Crown },
-    { id: 'registrations', label: 'Registrations', icon: Users },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
               <Crown className="w-8 h-8 text-royal-blue" />
               <div>
-                <h1 className="text-xl font-playfair font-bold text-gray-900">
-                  Kingdom Business Studio
-                </h1>
-                <p className="text-sm text-gray-600 font-inter">Admin Dashboard</p>
+                <h1 className="text-xl font-playfair font-bold text-gray-900">Admin Dashboard</h1>
+                <p className="text-sm text-gray-600 font-inter">Kingdom Business Studio</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/')}
-                className="text-gray-600 hover:text-gray-900 font-inter text-sm"
+              <Link
+                to="/"
+                className="flex items-center text-gray-600 hover:text-royal-blue transition-colors font-inter"
               >
-                View Website
-              </button>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Website
+              </Link>
               <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-red-700 transition-colors"
+                onClick={logout}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-red-600 transition-colors"
               >
                 Logout
               </button>
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="mb-8">
-          <nav className="flex space-x-8 border-b border-gray-200">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-inter font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-royal-blue text-royal-blue'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8">
+            {[
+              { id: 'businesses', label: 'Businesses', icon: Briefcase },
+              { id: 'blog', label: 'Blog Posts', icon: FileText },
+              { id: 'programs', label: 'Programs', icon: Crown },
+              { id: 'registrations', label: 'Registrations', icon: Users },
+              { id: 'settings', label: 'Settings', icon: Settings },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center space-x-2 py-4 border-b-2 font-inter font-medium transition-colors ${
+                  activeTab === id
+                    ? 'border-royal-blue text-royal-blue'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{label}</span>
+              </button>
+            ))}
           </nav>
         </div>
+      </div>
 
-        {/* Content */}
-        <div className="bg-white rounded-xl shadow-lg">
-          {/* Businesses Tab */}
-          {activeTab === 'businesses' && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-playfair font-bold text-gray-900">Businesses</h2>
-                <button
-                  onClick={() => setShowAddBusiness(true)}
-                  className="bg-royal-blue text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-deep-blue transition-colors flex items-center space-x-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Business</span>
-                </button>
-              </div>
-
-              {showAddBusiness && (
-                <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h3 className="text-lg font-playfair font-semibold mb-4">Add New Business</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="Business Name"
-                      value={newBusiness.name}
-                      onChange={(e) => setNewBusiness(prev => ({ ...prev, name: e.target.value }))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Logo (emoji or URL)"
-                      value={newBusiness.logo}
-                      onChange={(e) => setNewBusiness(prev => ({ ...prev, logo: e.target.value }))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Category"
-                      value={newBusiness.category}
-                      onChange={(e) => setNewBusiness(prev => ({ ...prev, category: e.target.value }))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                    />
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="isNew"
-                        checked={newBusiness.isNew}
-                        onChange={(e) => setNewBusiness(prev => ({ ...prev, isNew: e.target.checked }))}
-                        className="rounded border-gray-300 text-royal-blue focus:ring-royal-blue"
-                      />
-                      <label htmlFor="isNew" className="text-sm font-inter text-gray-700">Mark as New</label>
-                    </div>
-                  </div>
+      {/* Content */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Businesses Tab */}
+        {activeTab === 'businesses' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">Add New Business</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Business Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newBusiness.name}
+                    onChange={(e) => setNewBusiness(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                    placeholder="Enter business name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Category *
+                  </label>
+                  <input
+                    type="text"
+                    value={newBusiness.category}
+                    onChange={(e) => setNewBusiness(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                    placeholder="e.g., Technology, Healthcare"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Logo
+                  </label>
+                  <ImageUpload
+                    currentImage={newBusiness.logo}
+                    onImageChange={(imageUrl) => setNewBusiness(prev => ({ ...prev, logo: imageUrl }))}
+                    onImageRemove={() => setNewBusiness(prev => ({ ...prev, logo: '' }))}
+                    maxWidth={200}
+                    maxHeight={200}
+                    placeholder="Upload business logo"
+                    className="max-w-xs"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Description *
+                  </label>
                   <textarea
-                    placeholder="Description"
                     value={newBusiness.description}
                     onChange={(e) => setNewBusiness(prev => ({ ...prev, description: e.target.value }))}
                     rows={3}
-                    className="w-full mt-4 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                    placeholder="Enter business description"
                   />
-                  <div className="flex space-x-2 mt-4">
-                    <button
-                      onClick={handleAddBusiness}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>Save</span>
-                    </button>
-                    <button
-                      onClick={() => setShowAddBusiness(false)}
-                      className="bg-gray-600 text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-gray-700 transition-colors flex items-center space-x-2"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>Cancel</span>
-                    </button>
-                  </div>
                 </div>
-              )}
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isNew"
+                    checked={newBusiness.isNew}
+                    onChange={(e) => setNewBusiness(prev => ({ ...prev, isNew: e.target.checked }))}
+                    className="mr-2"
+                  />
+                  <label htmlFor="isNew" className="text-sm font-inter text-gray-700">
+                    Mark as "New"
+                  </label>
+                </div>
+              </div>
+              <div className="mt-6">
+                <button
+                  onClick={handleAddBusiness}
+                  className="bg-royal-blue text-white px-6 py-3 rounded-lg font-inter font-semibold hover:bg-deep-blue transition-colors"
+                >
+                  Add Business
+                </button>
+              </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Existing Businesses */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">Existing Businesses</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {businesses.map((business) => (
                   <div key={business.id} className="border border-gray-200 rounded-lg p-4">
-                    {editingBusiness?.id === business.id ? (
-                      <div className="space-y-3">
+                    {editingItem === business.id && editingBusiness ? (
+                      <div className="space-y-4">
                         <input
                           type="text"
                           value={editingBusiness.name}
                           onChange={(e) => setEditingBusiness(prev => prev ? { ...prev, name: e.target.value } : null)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                        />
-                        <input
-                          type="text"
-                          value={editingBusiness.logo}
-                          onChange={(e) => setEditingBusiness(prev => prev ? { ...prev, logo: e.target.value } : null)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
                         />
                         <input
                           type="text"
                           value={editingBusiness.category}
                           onChange={(e) => setEditingBusiness(prev => prev ? { ...prev, category: e.target.value } : null)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                        />
+                        <ImageUpload
+                          currentImage={editingBusiness.logo}
+                          onImageChange={(imageUrl) => setEditingBusiness(prev => prev ? { ...prev, logo: imageUrl } : null)}
+                          onImageRemove={() => setEditingBusiness(prev => prev ? { ...prev, logo: '' } : null)}
+                          maxWidth={200}
+                          maxHeight={200}
+                          placeholder="Upload business logo"
                         />
                         <textarea
                           value={editingBusiness.description}
                           onChange={(e) => setEditingBusiness(prev => prev ? { ...prev, description: e.target.value } : null)}
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
                         />
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center">
                           <input
                             type="checkbox"
                             checked={editingBusiness.isNew}
                             onChange={(e) => setEditingBusiness(prev => prev ? { ...prev, isNew: e.target.checked } : null)}
-                            className="rounded border-gray-300 text-royal-blue focus:ring-royal-blue"
+                            className="mr-2"
                           />
-                          <label className="text-sm font-inter text-gray-700">Mark as New</label>
+                          <label className="text-sm font-inter text-gray-700">Mark as "New"</label>
                         </div>
                         <div className="flex space-x-2">
                           <button
                             onClick={handleUpdateBusiness}
-                            className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
+                            className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors"
                           >
-                            Save
+                            <Save className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => setEditingBusiness(null)}
-                            className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition-colors"
+                            onClick={() => {
+                              setEditingItem(null);
+                              setEditingBusiness(null);
+                            }}
+                            className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition-colors"
                           >
-                            Cancel
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
                     ) : (
                       <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-2xl">{business.logo}</span>
-                            {business.isNew && (
-                              <span className="bg-mustard-yellow text-white px-2 py-1 rounded-full text-xs font-inter font-medium">
-                                New
-                              </span>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded border">
+                            {business.logo.startsWith('data:') ? (
+                              <img src={business.logo} alt={business.name} className="w-10 h-10 object-cover rounded" />
+                            ) : (
+                              <span className="text-2xl">{business.logo || '🏢'}</span>
                             )}
                           </div>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => setEditingBusiness(business)}
-                              className="text-blue-600 hover:text-blue-800 p-1"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => removeBusiness(business.id)}
-                              className="text-red-600 hover:text-red-800 p-1"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {business.isNew && (
+                            <span className="bg-mustard-yellow text-white px-2 py-1 rounded text-xs font-inter font-medium">
+                              New
+                            </span>
+                          )}
                         </div>
-                        <h3 className="font-playfair font-semibold text-gray-900">{business.name}</h3>
-                        <p className="text-royal-blue font-inter text-sm">{business.category}</p>
-                        <p className="text-gray-600 font-inter text-sm mt-2">{business.description}</p>
+                        <h3 className="font-playfair font-semibold text-gray-900 mb-1">{business.name}</h3>
+                        <p className="text-royal-blue font-inter text-sm mb-2">{business.category}</p>
+                        <p className="text-gray-600 font-inter text-sm mb-4">{business.description}</p>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingItem(business.id);
+                              setEditingBusiness(business);
+                            }}
+                            className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBusiness(business.id)}
+                            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Blog Posts Tab */}
-          {activeTab === 'blog' && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-playfair font-bold text-gray-900">Blog Posts</h2>
-                <button
-                  onClick={() => setShowAddBlogPost(true)}
-                  className="bg-royal-blue text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-deep-blue transition-colors flex items-center space-x-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Post</span>
-                </button>
-              </div>
-
-              {showAddBlogPost && (
-                <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h3 className="text-lg font-playfair font-semibold mb-4">Add New Blog Post</h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input
-                        type="text"
-                        placeholder="Title"
-                        value={newBlogPost.title}
-                        onChange={(e) => setNewBlogPost(prev => ({ ...prev, title: e.target.value }))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Author"
-                        value={newBlogPost.author}
-                        onChange={(e) => setNewBlogPost(prev => ({ ...prev, author: e.target.value }))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                      />
-                      <input
-                        type="date"
-                        value={newBlogPost.date}
-                        onChange={(e) => setNewBlogPost(prev => ({ ...prev, date: e.target.value }))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Category"
-                        value={newBlogPost.category}
-                        onChange={(e) => setNewBlogPost(prev => ({ ...prev, category: e.target.value }))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                      />
-                    </div>
+        {/* Blog Posts Tab */}
+        {activeTab === 'blog' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">Add New Blog Post</h2>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                      Title *
+                    </label>
                     <input
-                      type="url"
-                      placeholder="Image URL (optional)"
-                      value={newBlogPost.imageUrl}
-                      onChange={(e) => setNewBlogPost(prev => ({ ...prev, imageUrl: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                    />
-                    <textarea
-                      placeholder="Excerpt"
-                      value={newBlogPost.excerpt}
-                      onChange={(e) => setNewBlogPost(prev => ({ ...prev, excerpt: e.target.value }))}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                    />
-                    <textarea
-                      placeholder="Content"
-                      value={newBlogPost.content}
-                      onChange={(e) => setNewBlogPost(prev => ({ ...prev, content: e.target.value }))}
-                      rows={6}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                      type="text"
+                      value={newBlogPost.title}
+                      onChange={(e) => setNewBlogPost(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                      placeholder="Enter blog post title"
                     />
                   </div>
-                  <div className="flex space-x-2 mt-4">
-                    <button
-                      onClick={handleAddBlogPost}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>Save</span>
-                    </button>
-                    <button
-                      onClick={() => setShowAddBlogPost(false)}
-                      className="bg-gray-600 text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-gray-700 transition-colors flex items-center space-x-2"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>Cancel</span>
-                    </button>
+                  <div>
+                    <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                      Author *
+                    </label>
+                    <input
+                      type="text"
+                      value={newBlogPost.author}
+                      onChange={(e) => setNewBlogPost(prev => ({ ...prev, author: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                      placeholder="Enter author name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                      Category *
+                    </label>
+                    <input
+                      type="text"
+                      value={newBlogPost.category}
+                      onChange={(e) => setNewBlogPost(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                      placeholder="e.g., Faith & Business"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                      Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={newBlogPost.date}
+                      onChange={(e) => setNewBlogPost(prev => ({ ...prev, date: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                    />
                   </div>
                 </div>
-              )}
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Featured Image
+                  </label>
+                  <ImageUpload
+                    currentImage={newBlogPost.imageUrl}
+                    onImageChange={(imageUrl) => setNewBlogPost(prev => ({ ...prev, imageUrl }))}
+                    onImageRemove={() => setNewBlogPost(prev => ({ ...prev, imageUrl: '' }))}
+                    maxWidth={800}
+                    maxHeight={400}
+                    placeholder="Upload blog post image"
+                    className="max-w-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Excerpt *
+                  </label>
+                  <textarea
+                    value={newBlogPost.excerpt}
+                    onChange={(e) => setNewBlogPost(prev => ({ ...prev, excerpt: e.target.value }))}
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                    placeholder="Enter a brief excerpt"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Content *
+                  </label>
+                  <textarea
+                    value={newBlogPost.content}
+                    onChange={(e) => setNewBlogPost(prev => ({ ...prev, content: e.target.value }))}
+                    rows={10}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                    placeholder="Enter the full blog post content"
+                  />
+                </div>
+              </div>
+              <div className="mt-6">
+                <button
+                  onClick={handleAddBlogPost}
+                  className="bg-royal-blue text-white px-6 py-3 rounded-lg font-inter font-semibold hover:bg-deep-blue transition-colors"
+                >
+                  Add Blog Post
+                </button>
+              </div>
+            </div>
 
-              <div className="space-y-4">
+            {/* Existing Blog Posts */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">Existing Blog Posts</h2>
+              <div className="space-y-6">
                 {blogPosts.map((post) => (
-                  <div key={post.id} className="border border-gray-200 rounded-lg p-4">
-                    {editingBlogPost?.id === post.id ? (
+                  <div key={post.id} className="border border-gray-200 rounded-lg p-6">
+                    {editingItem === post.id && editingBlogPost ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <input
                             type="text"
                             value={editingBlogPost.title}
                             onChange={(e) => setEditingBlogPost(prev => prev ? { ...prev, title: e.target.value } : null)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                            placeholder="Title"
                           />
                           <input
                             type="text"
                             value={editingBlogPost.author}
                             onChange={(e) => setEditingBlogPost(prev => prev ? { ...prev, author: e.target.value } : null)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                          />
-                          <input
-                            type="date"
-                            value={editingBlogPost.date}
-                            onChange={(e) => setEditingBlogPost(prev => prev ? { ...prev, date: e.target.value } : null)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                            placeholder="Author"
                           />
                           <input
                             type="text"
                             value={editingBlogPost.category}
                             onChange={(e) => setEditingBlogPost(prev => prev ? { ...prev, category: e.target.value } : null)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                            placeholder="Category"
+                          />
+                          <input
+                            type="date"
+                            value={editingBlogPost.date}
+                            onChange={(e) => setEditingBlogPost(prev => prev ? { ...prev, date: e.target.value } : null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
                           />
                         </div>
-                        <input
-                          type="url"
-                          value={editingBlogPost.imageUrl || ''}
-                          onChange={(e) => setEditingBlogPost(prev => prev ? { ...prev, imageUrl: e.target.value } : null)}
-                          placeholder="Image URL (optional)"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                        <ImageUpload
+                          currentImage={editingBlogPost.imageUrl}
+                          onImageChange={(imageUrl) => setEditingBlogPost(prev => prev ? { ...prev, imageUrl } : null)}
+                          onImageRemove={() => setEditingBlogPost(prev => prev ? { ...prev, imageUrl: '' } : null)}
+                          maxWidth={800}
+                          maxHeight={400}
+                          placeholder="Upload blog post image"
+                          className="max-w-md"
                         />
                         <textarea
                           value={editingBlogPost.excerpt}
                           onChange={(e) => setEditingBlogPost(prev => prev ? { ...prev, excerpt: e.target.value } : null)}
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          placeholder="Excerpt"
                         />
                         <textarea
                           value={editingBlogPost.content}
                           onChange={(e) => setEditingBlogPost(prev => prev ? { ...prev, content: e.target.value } : null)}
-                          rows={6}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          rows={8}
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          placeholder="Content"
                         />
                         <div className="flex space-x-2">
                           <button
                             onClick={handleUpdateBlogPost}
-                            className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
+                            className="bg-green-500 text-white px-4 py-2 rounded font-inter font-medium hover:bg-green-600 transition-colors"
                           >
-                            Save
+                            Save Changes
                           </button>
                           <button
-                            onClick={() => setEditingBlogPost(null)}
-                            className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition-colors"
+                            onClick={() => {
+                              setEditingItem(null);
+                              setEditingBlogPost(null);
+                            }}
+                            className="bg-gray-500 text-white px-4 py-2 rounded font-inter font-medium hover:bg-gray-600 transition-colors"
                           >
                             Cancel
                           </button>
@@ -653,89 +750,110 @@ const Admin: React.FC = () => {
                       </div>
                     ) : (
                       <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-playfair font-semibold text-gray-900">{post.title}</h3>
-                            <p className="text-sm text-gray-600 font-inter">
-                              By {post.author} • {new Date(post.date).toLocaleDateString()} • {post.category}
-                            </p>
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-playfair font-semibold text-gray-900 mb-2">{post.title}</h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+                              <span className="flex items-center">
+                                <User className="w-4 h-4 mr-1" />
+                                {post.author}
+                              </span>
+                              <span className="flex items-center">
+                                <Calendar className="w-4 h-4 mr-1" />
+                                {new Date(post.date).toLocaleDateString()}
+                              </span>
+                              <span className="bg-royal-blue/10 text-royal-blue px-2 py-1 rounded text-xs">
+                                {post.category}
+                              </span>
+                            </div>
+                            <p className="text-gray-600 font-inter mb-3">{post.excerpt}</p>
                           </div>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => setEditingBlogPost(post)}
-                              className="text-blue-600 hover:text-blue-800 p-1"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => removeBlogPost(post.id)}
-                              className="text-red-600 hover:text-red-800 p-1"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {post.imageUrl && (
+                            <img 
+                              src={post.imageUrl} 
+                              alt={post.title}
+                              className="w-24 h-16 object-cover rounded ml-4"
+                            />
+                          )}
                         </div>
-                        <p className="text-gray-600 font-inter text-sm">{post.excerpt}</p>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingItem(post.id);
+                              setEditingBlogPost(post);
+                            }}
+                            className="bg-blue-500 text-white px-4 py-2 rounded font-inter font-medium hover:bg-blue-600 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBlogPost(post.id)}
+                            className="bg-red-500 text-white px-4 py-2 rounded font-inter font-medium hover:bg-red-600 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Programs Tab */}
-          {activeTab === 'programs' && (
-            <div className="p-6">
-              <h2 className="text-2xl font-playfair font-bold text-gray-900 mb-6">Programs</h2>
+        {/* Programs Tab */}
+        {activeTab === 'programs' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">Programs</h2>
               <div className="space-y-6">
                 {programs.map((program) => (
-                  <div key={program.id} className="border border-gray-200 rounded-lg p-4">
-                    {editingProgram?.id === program.id ? (
+                  <div key={program.id} className="border border-gray-200 rounded-lg p-6">
+                    {editingItem === program.id && editingProgram ? (
                       <div className="space-y-4">
                         <input
                           type="text"
                           value={editingProgram.name}
                           onChange={(e) => setEditingProgram(prev => prev ? { ...prev, name: e.target.value } : null)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          placeholder="Program Name"
                         />
                         <textarea
                           value={editingProgram.description}
                           onChange={(e) => setEditingProgram(prev => prev ? { ...prev, description: e.target.value } : null)}
                           rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                          placeholder="Program Description"
                         />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <select
-                            value={editingProgram.primaryColor}
-                            onChange={(e) => setEditingProgram(prev => prev ? { ...prev, primaryColor: e.target.value } : null)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                          >
-                            <option value="royal-blue">Royal Blue</option>
-                            <option value="mustard-yellow">Mustard Yellow</option>
-                          </select>
-                        </div>
                         <div>
                           <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
                             Features (one per line)
                           </label>
                           <textarea
                             value={editingProgram.features.join('\n')}
-                            onChange={(e) => setEditingProgram(prev => prev ? { ...prev, features: e.target.value.split('\n').filter(f => f.trim()) } : null)}
+                            onChange={(e) => setEditingProgram(prev => prev ? { 
+                              ...prev, 
+                              features: e.target.value.split('\n').filter(f => f.trim()) 
+                            } : null)}
                             rows={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                            placeholder="Enter features, one per line"
                           />
                         </div>
                         <div className="flex space-x-2">
                           <button
                             onClick={handleUpdateProgram}
-                            className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
+                            className="bg-green-500 text-white px-4 py-2 rounded font-inter font-medium hover:bg-green-600 transition-colors"
                           >
-                            Save
+                            Save Changes
                           </button>
                           <button
-                            onClick={() => setEditingProgram(null)}
-                            className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition-colors"
+                            onClick={() => {
+                              setEditingItem(null);
+                              setEditingProgram(null);
+                            }}
+                            className="bg-gray-500 text-white px-4 py-2 rounded font-inter font-medium hover:bg-gray-600 transition-colors"
                           >
                             Cancel
                           </button>
@@ -743,350 +861,292 @@ const Admin: React.FC = () => {
                       </div>
                     ) : (
                       <div>
-                        <div className="flex justify-between items-start mb-2">
+                        <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h3 className="font-playfair font-semibold text-gray-900">{program.name}</h3>
-                            <p className="text-sm text-gray-600 font-inter mt-2">{program.description}</p>
+                            <h3 className="text-lg font-playfair font-semibold text-gray-900 mb-2">{program.name}</h3>
+                            <p className="text-gray-600 font-inter mb-4">{program.description}</p>
+                            <div className="space-y-1">
+                              {program.features.map((feature, index) => (
+                                <div key={index} className="flex items-center text-gray-600 font-inter text-sm">
+                                  <div className="w-2 h-2 bg-royal-blue rounded-full mr-3"></div>
+                                  {feature}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <button
-                            onClick={() => setEditingProgram(program)}
-                            className="text-blue-600 hover:text-blue-800 p-1"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            program.primaryColor === 'royal-blue' ? 'bg-royal-blue text-white' : 'bg-mustard-yellow text-white'
+                          }`}>
+                            {program.primaryColor}
+                          </span>
                         </div>
-                        <div className="mt-4">
-                          <h4 className="font-inter font-medium text-gray-700 mb-2">Features:</h4>
-                          <ul className="list-disc list-inside space-y-1">
-                            {program.features.map((feature, index) => (
-                              <li key={index} className="text-sm text-gray-600 font-inter">{feature}</li>
-                            ))}
-                          </ul>
-                        </div>
+                        <button
+                          onClick={() => {
+                            setEditingItem(program.id);
+                            setEditingProgram(program);
+                          }}
+                          className="bg-blue-500 text-white px-4 py-2 rounded font-inter font-medium hover:bg-blue-600 transition-colors"
+                        >
+                          Edit Program
+                        </button>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Registrations Tab */}
-          {activeTab === 'registrations' && (
-            <div className="p-6">
-              <h2 className="text-2xl font-playfair font-bold text-gray-900 mb-6">
-                Registrations ({registrations.length})
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-inter font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-inter font-medium text-gray-500 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-inter font-medium text-gray-500 uppercase tracking-wider">
-                        Business
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-inter font-medium text-gray-500 uppercase tracking-wider">
-                        Payment
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-inter font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-inter font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {registrations.map((registration) => (
-                      <tr key={registration.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-inter font-medium text-gray-900">
-                              {registration.fullName}
-                            </div>
-                            <div className="text-sm text-gray-500 font-inter">
-                              {registration.country}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 font-inter">
-                            {registration.phoneNumber}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 font-inter">
-                            {registration.industry}
-                          </div>
-                          <div className="text-sm text-gray-500 font-inter">
-                            {registration.businessIdea.substring(0, 50)}...
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 font-inter">
-                            {registration.paymentMethod}
-                          </div>
-                          <div className="text-sm text-gray-500 font-inter">
-                            {registration.paymentProof}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-inter">
-                          {new Date(registration.timestamp).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => removeRegistration(registration.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Settings Tab */}
-          {activeTab === 'settings' && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-playfair font-bold text-gray-900">Settings</h2>
-                {editingSettings ? (
-                  <div className="flex space-x-2">
+        {/* Registrations Tab */}
+        {activeTab === 'registrations' && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">
+              Registrations ({registrations.length})
+            </h2>
+            <div className="space-y-4">
+              {registrations.map((registration) => (
+                <div key={registration.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <h3 className="font-playfair font-semibold text-gray-900">{registration.fullName}</h3>
+                      <p className="text-gray-600 font-inter text-sm flex items-center mt-1">
+                        <Phone className="w-4 h-4 mr-1" />
+                        {registration.phoneNumber}
+                      </p>
+                      <p className="text-gray-600 font-inter text-sm flex items-center">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        {registration.country}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 font-inter text-sm">
+                        <strong>Industry:</strong> {registration.industry}
+                      </p>
+                      <p className="text-gray-600 font-inter text-sm">
+                        <strong>Payment:</strong> {registration.paymentMethod}
+                      </p>
+                      <p className="text-gray-600 font-inter text-sm">
+                        <strong>Proof:</strong> {registration.paymentProof}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 font-inter text-sm">
+                        <strong>Registered:</strong> {new Date(registration.timestamp).toLocaleDateString()}
+                      </p>
+                      <p className="text-gray-600 font-inter text-sm">
+                        <strong>Time Preference:</strong> {registration.timePreference}
+                      </p>
+                      <p className="text-gray-600 font-inter text-sm">
+                        <strong>Days:</strong> {registration.daysPreference.join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-3 bg-gray-50 rounded">
+                    <p className="text-gray-700 font-inter text-sm">
+                      <strong>Business Idea:</strong> {registration.businessIdea}
+                    </p>
+                  </div>
+                  <div className="mt-4 flex justify-end">
                     <button
-                      onClick={handleSaveSettings}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+                      onClick={() => handleDeleteRegistration(registration.id)}
+                      className="bg-red-500 text-white px-4 py-2 rounded font-inter font-medium hover:bg-red-600 transition-colors"
                     >
-                      <Save className="w-4 h-4" />
-                      <span>Save Changes</span>
-                    </button>
-                    <button
-                      onClick={() => setEditingSettings(false)}
-                      className="bg-gray-600 text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-gray-700 transition-colors flex items-center space-x-2"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>Cancel</span>
+                      Delete
                     </button>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => setEditingSettings(true)}
-                    className="bg-royal-blue text-white px-4 py-2 rounded-lg font-inter font-medium hover:bg-deep-blue transition-colors flex items-center space-x-2"
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span>Edit Settings</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="space-y-8">
-                {/* Registration Price */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <DollarSign className="w-5 h-5 text-royal-blue" />
-                    <h3 className="text-lg font-playfair font-semibold text-gray-900">Registration Price</h3>
-                  </div>
-                  {editingSettings ? (
-                    <input
-                      type="number"
-                      value={settingsForm.registrationPrice}
-                      onChange={(e) => setSettingsForm(prev => ({ ...prev, registrationPrice: parseInt(e.target.value) || 0 }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-700 font-inter">KES {registrationPrice}</p>
-                  )}
                 </div>
-
-                {/* Contact Information */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Phone className="w-5 h-5 text-royal-blue" />
-                    <h3 className="text-lg font-playfair font-semibold text-gray-900">Contact Information</h3>
-                  </div>
-                  {editingSettings ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-inter font-medium text-gray-700 mb-1">Phone</label>
-                        <input
-                          type="text"
-                          value={settingsForm.contactInfo.phone}
-                          onChange={(e) => setSettingsForm(prev => ({
-                            ...prev,
-                            contactInfo: { ...prev.contactInfo, phone: e.target.value }
-                          }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-inter font-medium text-gray-700 mb-1">Email</label>
-                        <input
-                          type="email"
-                          value={settingsForm.contactInfo.email}
-                          onChange={(e) => setSettingsForm(prev => ({
-                            ...prev,
-                            contactInfo: { ...prev.contactInfo, email: e.target.value }
-                          }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-inter font-medium text-gray-700 mb-1">WhatsApp</label>
-                        <input
-                          type="text"
-                          value={settingsForm.contactInfo.whatsapp}
-                          onChange={(e) => setSettingsForm(prev => ({
-                            ...prev,
-                            contactInfo: { ...prev.contactInfo, whatsapp: e.target.value }
-                          }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-inter font-medium text-gray-700 mb-1">Location</label>
-                        <input
-                          type="text"
-                          value={settingsForm.contactInfo.location}
-                          onChange={(e) => setSettingsForm(prev => ({
-                            ...prev,
-                            contactInfo: { ...prev.contactInfo, location: e.target.value }
-                          }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-inter font-medium text-gray-700">Phone</p>
-                        <p className="text-gray-600 font-inter">{contactInfo.phone}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-inter font-medium text-gray-700">Email</p>
-                        <p className="text-gray-600 font-inter">{contactInfo.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-inter font-medium text-gray-700">WhatsApp</p>
-                        <p className="text-gray-600 font-inter">{contactInfo.whatsapp}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-inter font-medium text-gray-700">Location</p>
-                        <p className="text-gray-600 font-inter">{contactInfo.location}</p>
-                      </div>
-                    </div>
-                  )}
+              ))}
+              {registrations.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 font-inter">No registrations yet.</p>
                 </div>
+              )}
+            </div>
+          </div>
+        )}
 
-                {/* Social Media Links */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Facebook className="w-5 h-5 text-royal-blue" />
-                    <h3 className="text-lg font-playfair font-semibold text-gray-900">Social Media Links</h3>
-                  </div>
-                  {editingSettings ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-inter font-medium text-gray-700 mb-1">Facebook</label>
-                        <input
-                          type="url"
-                          value={settingsForm.socialMediaLinks.facebook}
-                          onChange={(e) => setSettingsForm(prev => ({
-                            ...prev,
-                            socialMediaLinks: { ...prev.socialMediaLinks, facebook: e.target.value }
-                          }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-inter font-medium text-gray-700 mb-1">Instagram</label>
-                        <input
-                          type="url"
-                          value={settingsForm.socialMediaLinks.instagram}
-                          onChange={(e) => setSettingsForm(prev => ({
-                            ...prev,
-                            socialMediaLinks: { ...prev.socialMediaLinks, instagram: e.target.value }
-                          }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-inter font-medium text-gray-700 mb-1">Twitter</label>
-                        <input
-                          type="url"
-                          value={settingsForm.socialMediaLinks.twitter}
-                          onChange={(e) => setSettingsForm(prev => ({
-                            ...prev,
-                            socialMediaLinks: { ...prev.socialMediaLinks, twitter: e.target.value }
-                          }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-inter font-medium text-gray-700 mb-1">LinkedIn</label>
-                        <input
-                          type="url"
-                          value={settingsForm.socialMediaLinks.linkedin}
-                          onChange={(e) => setSettingsForm(prev => ({
-                            ...prev,
-                            socialMediaLinks: { ...prev.socialMediaLinks, linkedin: e.target.value }
-                          }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-inter font-medium text-gray-700">Facebook</p>
-                        <p className="text-gray-600 font-inter break-all">{socialMediaLinks.facebook}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-inter font-medium text-gray-700">Instagram</p>
-                        <p className="text-gray-600 font-inter break-all">{socialMediaLinks.instagram}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-inter font-medium text-gray-700">Twitter</p>
-                        <p className="text-gray-600 font-inter break-all">{socialMediaLinks.twitter}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-inter font-medium text-gray-700">LinkedIn</p>
-                        <p className="text-gray-600 font-inter break-all">{socialMediaLinks.linkedin}</p>
-                      </div>
-                    </div>
-                  )}
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="space-y-8">
+            {/* Registration Price */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">Registration Price</h2>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <DollarSign className="w-5 h-5 text-gray-400 mr-2" />
+                  <input
+                    type="number"
+                    value={settingsForm.registrationPrice}
+                    onChange={(e) => setSettingsForm(prev => ({ ...prev, registrationPrice: parseInt(e.target.value) || 0 }))}
+                    className="w-32 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                    placeholder="Price in KES"
+                  />
+                  <span className="ml-2 text-gray-600 font-inter">KES</span>
                 </div>
-
-                {/* Admin Password */}
-                {editingSettings && (
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <div className="flex items-center space-x-2 mb-4">
-                      <Settings className="w-5 h-5 text-royal-blue" />
-                      <h3 className="text-lg font-playfair font-semibold text-gray-900">Change Admin Password</h3>
-                    </div>
-                    <div className="max-w-md">
-                      <label className="block text-sm font-inter font-medium text-gray-700 mb-1">New Password</label>
-                      <input
-                        type="password"
-                        value={settingsForm.newPassword}
-                        onChange={(e) => setSettingsForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                        placeholder="Leave blank to keep current password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                )}
+                <button
+                  onClick={handleUpdateSettings}
+                  className="bg-royal-blue text-white px-4 py-2 rounded font-inter font-medium hover:bg-deep-blue transition-colors"
+                >
+                  Update Price
+                </button>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Contact Information */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">Contact Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={settingsForm.contactInfo.phone}
+                    onChange={(e) => setSettingsForm(prev => ({
+                      ...prev,
+                      contactInfo: { ...prev.contactInfo, phone: e.target.value }
+                    }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={settingsForm.contactInfo.email}
+                    onChange={(e) => setSettingsForm(prev => ({
+                      ...prev,
+                      contactInfo: { ...prev.contactInfo, email: e.target.value }
+                    }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    value={settingsForm.contactInfo.whatsapp}
+                    onChange={(e) => setSettingsForm(prev => ({
+                      ...prev,
+                      contactInfo: { ...prev.contactInfo, whatsapp: e.target.value }
+                    }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={settingsForm.contactInfo.location}
+                    onChange={(e) => setSettingsForm(prev => ({
+                      ...prev,
+                      contactInfo: { ...prev.contactInfo, location: e.target.value }
+                    }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Social Media Links */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">Social Media Links</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Facebook
+                  </label>
+                  <input
+                    type="url"
+                    value={settingsForm.socialMediaLinks.facebook}
+                    onChange={(e) => setSettingsForm(prev => ({
+                      ...prev,
+                      socialMediaLinks: { ...prev.socialMediaLinks, facebook: e.target.value }
+                    }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Instagram
+                  </label>
+                  <input
+                    type="url"
+                    value={settingsForm.socialMediaLinks.instagram}
+                    onChange={(e) => setSettingsForm(prev => ({
+                      ...prev,
+                      socialMediaLinks: { ...prev.socialMediaLinks, instagram: e.target.value }
+                    }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    Twitter
+                  </label>
+                  <input
+                    type="url"
+                    value={settingsForm.socialMediaLinks.twitter}
+                    onChange={(e) => setSettingsForm(prev => ({
+                      ...prev,
+                      socialMediaLinks: { ...prev.socialMediaLinks, twitter: e.target.value }
+                    }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                    LinkedIn
+                  </label>
+                  <input
+                    type="url"
+                    value={settingsForm.socialMediaLinks.linkedin}
+                    onChange={(e) => setSettingsForm(prev => ({
+                      ...prev,
+                      socialMediaLinks: { ...prev.socialMediaLinks, linkedin: e.target.value }
+                    }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Admin Password */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-playfair font-bold text-gray-900 mb-6">Change Admin Password</h2>
+              <div className="max-w-md">
+                <label className="block text-sm font-inter font-medium text-gray-700 mb-2">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={settingsForm.newPassword}
+                  onChange={(e) => setSettingsForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-royal-blue focus:border-transparent"
+                  placeholder="Enter new password"
+                />
+              </div>
+            </div>
+
+            {/* Save All Settings */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <button
+                onClick={handleUpdateSettings}
+                className="bg-royal-blue text-white px-8 py-3 rounded-lg font-inter font-semibold hover:bg-deep-blue transition-colors"
+              >
+                Save All Settings
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
