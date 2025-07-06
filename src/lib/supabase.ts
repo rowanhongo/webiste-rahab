@@ -7,7 +7,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+// Public client for read operations and user registrations
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// For admin operations, we'll use the same client but with proper RLS policies
-export const supabaseAdmin = supabase;
+// Admin client with service role for admin operations
+const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54cGliZmJ5a3plYXB3aXpscHZsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTgwMzk0NCwiZXhwIjoyMDY3Mzc5OTQ0fQ.MM64-e7FGVuBFTsDuzMV9nCyMZakAkl_zjyEvnvSFfc';
+
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});

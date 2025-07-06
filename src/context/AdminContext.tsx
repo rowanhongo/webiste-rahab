@@ -88,7 +88,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         businessesData,
         blogPostsData,
         programsData,
-        registrationsData,
         priceData,
         contactData,
         socialData
@@ -96,7 +95,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         AdminService.getBusinesses(),
         AdminService.getBlogPosts(),
         AdminService.getPrograms(),
-        AdminService.getRegistrations(),
         AdminService.getRegistrationPrice(),
         AdminService.getContactInfo(),
         AdminService.getSocialMediaLinks()
@@ -105,10 +103,15 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setBusinesses(businessesData);
       setBlogPosts(blogPostsData);
       setPrograms(programsData);
-      setRegistrations(registrationsData);
       setRegistrationPrice(priceData);
       setContactInfo(contactData);
       setSocialMediaLinks(socialData);
+
+      // Load registrations only if authenticated
+      if (AdminService.isAdminAuthenticated()) {
+        const registrationsData = await AdminService.getRegistrations();
+        setRegistrations(registrationsData);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -136,6 +139,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (success) {
         setIsAuthenticated(true);
         localStorage.setItem('kbs-admin-auth', 'true');
+        // Refresh data after login to load registrations
+        await refreshData();
         return true;
       }
       return false;
@@ -148,73 +153,143 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const logout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('kbs-admin-auth');
+    localStorage.removeItem('kbs-admin-session');
+    setRegistrations([]); // Clear registrations on logout
   };
 
   const addBusiness = async (business: Omit<Business, 'id'>) => {
-    await AdminService.addBusiness(business);
-    await refreshData();
+    try {
+      await AdminService.addBusiness(business);
+      await refreshData();
+    } catch (error) {
+      console.error('Error adding business:', error);
+      throw error;
+    }
   };
 
   const removeBusiness = async (id: string) => {
-    await AdminService.removeBusiness(id);
-    await refreshData();
+    try {
+      await AdminService.removeBusiness(id);
+      await refreshData();
+    } catch (error) {
+      console.error('Error removing business:', error);
+      throw error;
+    }
   };
 
   const updateBusiness = async (id: string, business: Partial<Business>) => {
-    await AdminService.updateBusiness(id, business);
-    await refreshData();
+    try {
+      await AdminService.updateBusiness(id, business);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating business:', error);
+      throw error;
+    }
   };
 
   const addBlogPost = async (post: Omit<BlogPost, 'id'>) => {
-    await AdminService.addBlogPost(post);
-    await refreshData();
+    try {
+      await AdminService.addBlogPost(post);
+      await refreshData();
+    } catch (error) {
+      console.error('Error adding blog post:', error);
+      throw error;
+    }
   };
 
   const removeBlogPost = async (id: string) => {
-    await AdminService.removeBlogPost(id);
-    await refreshData();
+    try {
+      await AdminService.removeBlogPost(id);
+      await refreshData();
+    } catch (error) {
+      console.error('Error removing blog post:', error);
+      throw error;
+    }
   };
 
   const updateBlogPost = async (id: string, post: Partial<BlogPost>) => {
-    await AdminService.updateBlogPost(id, post);
-    await refreshData();
+    try {
+      await AdminService.updateBlogPost(id, post);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating blog post:', error);
+      throw error;
+    }
   };
 
   const updateProgram = async (id: string, program: Partial<Program>) => {
-    await AdminService.updateProgram(id, program);
-    await refreshData();
+    try {
+      await AdminService.updateProgram(id, program);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating program:', error);
+      throw error;
+    }
   };
 
   const addRegistration = async (registration: any) => {
-    await AdminService.addRegistration(registration);
-    await refreshData();
+    try {
+      await AdminService.addRegistration(registration);
+      // Only refresh if admin is authenticated to see registrations
+      if (isAuthenticated) {
+        await refreshData();
+      }
+    } catch (error) {
+      console.error('Error adding registration:', error);
+      throw error;
+    }
   };
 
   const getRegistrations = () => registrations;
 
   const removeRegistration = async (id: string) => {
-    await AdminService.removeRegistration(id);
-    await refreshData();
+    try {
+      await AdminService.removeRegistration(id);
+      await refreshData();
+    } catch (error) {
+      console.error('Error removing registration:', error);
+      throw error;
+    }
   };
 
   const updateRegistrationPrice = async (price: number) => {
-    await AdminService.updateRegistrationPrice(price);
-    await refreshData();
+    try {
+      await AdminService.updateRegistrationPrice(price);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating registration price:', error);
+      throw error;
+    }
   };
 
   const updateContactInfo = async (info: ContactInfo) => {
-    await AdminService.updateContactInfo(info);
-    await refreshData();
+    try {
+      await AdminService.updateContactInfo(info);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating contact info:', error);
+      throw error;
+    }
   };
 
   const updateSocialMediaLinks = async (links: SocialMediaLinks) => {
-    await AdminService.updateSocialMediaLinks(links);
-    await refreshData();
+    try {
+      await AdminService.updateSocialMediaLinks(links);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating social media links:', error);
+      throw error;
+    }
   };
 
   const updateAdminPassword = async (newPassword: string) => {
-    await AdminService.updateAdminPassword(newPassword);
-    setAdminPassword(newPassword);
+    try {
+      await AdminService.updateAdminPassword(newPassword);
+      setAdminPassword(newPassword);
+    } catch (error) {
+      console.error('Error updating admin password:', error);
+      throw error;
+    }
   };
 
   const sendContactMessage = (message: { name: string; email: string; message: string }) => {

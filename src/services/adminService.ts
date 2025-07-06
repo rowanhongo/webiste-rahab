@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 import { Business, BlogPost, Program } from '../types';
 
 interface ContactInfo {
@@ -19,18 +19,35 @@ export class AdminService {
   // Authentication
   static async login(username: string, password: string): Promise<boolean> {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('site_settings')
         .select('value')
         .eq('key', 'admin_password')
         .single();
 
+      if (error) {
+        console.error('Login error:', error);
+        return false;
+      }
+
       const adminPassword = data?.value;
-      return username === 'admin' && password === adminPassword;
+      const isValid = username === 'admin' && password === adminPassword;
+      
+      if (isValid) {
+        // Store admin session
+        localStorage.setItem('kbs-admin-session', 'authenticated');
+      }
+      
+      return isValid;
     } catch (error) {
       console.error('Login error:', error);
       return false;
     }
+  }
+
+  // Helper method to check admin authentication
+  static isAdminAuthenticated(): boolean {
+    return localStorage.getItem('kbs-admin-session') === 'authenticated';
   }
 
   // Businesses
@@ -61,42 +78,78 @@ export class AdminService {
   }
 
   static async addBusiness(business: Omit<Business, 'id'>): Promise<void> {
-    const { error } = await supabase
-      .from('businesses')
-      .insert({
-        name: business.name,
-        logo: business.logo,
-        category: business.category,
-        description: business.description,
-        is_new: business.isNew || false
-      });
+    if (!this.isAdminAuthenticated()) {
+      throw new Error('Admin authentication required');
+    }
 
-    if (error) throw error;
+    try {
+      const { error } = await supabaseAdmin
+        .from('businesses')
+        .insert({
+          name: business.name,
+          logo: business.logo,
+          category: business.category,
+          description: business.description,
+          is_new: business.isNew || false
+        });
+
+      if (error) {
+        console.error('Error adding business:', error);
+        throw new Error(`Failed to add business: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in addBusiness:', error);
+      throw error;
+    }
   }
 
   static async updateBusiness(id: string, business: Partial<Business>): Promise<void> {
-    const updateData: any = {};
-    if (business.name !== undefined) updateData.name = business.name;
-    if (business.logo !== undefined) updateData.logo = business.logo;
-    if (business.category !== undefined) updateData.category = business.category;
-    if (business.description !== undefined) updateData.description = business.description;
-    if (business.isNew !== undefined) updateData.is_new = business.isNew;
+    if (!this.isAdminAuthenticated()) {
+      throw new Error('Admin authentication required');
+    }
 
-    const { error } = await supabase
-      .from('businesses')
-      .update(updateData)
-      .eq('id', id);
+    try {
+      const updateData: any = {};
+      if (business.name !== undefined) updateData.name = business.name;
+      if (business.logo !== undefined) updateData.logo = business.logo;
+      if (business.category !== undefined) updateData.category = business.category;
+      if (business.description !== undefined) updateData.description = business.description;
+      if (business.isNew !== undefined) updateData.is_new = business.isNew;
 
-    if (error) throw error;
+      const { error } = await supabaseAdmin
+        .from('businesses')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating business:', error);
+        throw new Error(`Failed to update business: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in updateBusiness:', error);
+      throw error;
+    }
   }
 
   static async removeBusiness(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('businesses')
-      .delete()
-      .eq('id', id);
+    if (!this.isAdminAuthenticated()) {
+      throw new Error('Admin authentication required');
+    }
 
-    if (error) throw error;
+    try {
+      const { error } = await supabaseAdmin
+        .from('businesses')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error removing business:', error);
+        throw new Error(`Failed to remove business: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in removeBusiness:', error);
+      throw error;
+    }
   }
 
   // Blog Posts
@@ -129,46 +182,82 @@ export class AdminService {
   }
 
   static async addBlogPost(post: Omit<BlogPost, 'id'>): Promise<void> {
-    const { error } = await supabase
-      .from('blog_posts')
-      .insert({
-        title: post.title,
-        excerpt: post.excerpt,
-        content: post.content,
-        author: post.author,
-        date: post.date,
-        category: post.category,
-        image_url: post.imageUrl
-      });
+    if (!this.isAdminAuthenticated()) {
+      throw new Error('Admin authentication required');
+    }
 
-    if (error) throw error;
+    try {
+      const { error } = await supabaseAdmin
+        .from('blog_posts')
+        .insert({
+          title: post.title,
+          excerpt: post.excerpt,
+          content: post.content,
+          author: post.author,
+          date: post.date,
+          category: post.category,
+          image_url: post.imageUrl
+        });
+
+      if (error) {
+        console.error('Error adding blog post:', error);
+        throw new Error(`Failed to add blog post: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in addBlogPost:', error);
+      throw error;
+    }
   }
 
   static async updateBlogPost(id: string, post: Partial<BlogPost>): Promise<void> {
-    const updateData: any = {};
-    if (post.title !== undefined) updateData.title = post.title;
-    if (post.excerpt !== undefined) updateData.excerpt = post.excerpt;
-    if (post.content !== undefined) updateData.content = post.content;
-    if (post.author !== undefined) updateData.author = post.author;
-    if (post.date !== undefined) updateData.date = post.date;
-    if (post.category !== undefined) updateData.category = post.category;
-    if (post.imageUrl !== undefined) updateData.image_url = post.imageUrl;
+    if (!this.isAdminAuthenticated()) {
+      throw new Error('Admin authentication required');
+    }
 
-    const { error } = await supabase
-      .from('blog_posts')
-      .update(updateData)
-      .eq('id', id);
+    try {
+      const updateData: any = {};
+      if (post.title !== undefined) updateData.title = post.title;
+      if (post.excerpt !== undefined) updateData.excerpt = post.excerpt;
+      if (post.content !== undefined) updateData.content = post.content;
+      if (post.author !== undefined) updateData.author = post.author;
+      if (post.date !== undefined) updateData.date = post.date;
+      if (post.category !== undefined) updateData.category = post.category;
+      if (post.imageUrl !== undefined) updateData.image_url = post.imageUrl;
 
-    if (error) throw error;
+      const { error } = await supabaseAdmin
+        .from('blog_posts')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating blog post:', error);
+        throw new Error(`Failed to update blog post: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in updateBlogPost:', error);
+      throw error;
+    }
   }
 
   static async removeBlogPost(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('blog_posts')
-      .delete()
-      .eq('id', id);
+    if (!this.isAdminAuthenticated()) {
+      throw new Error('Admin authentication required');
+    }
 
-    if (error) throw error;
+    try {
+      const { error } = await supabaseAdmin
+        .from('blog_posts')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error removing blog post:', error);
+        throw new Error(`Failed to remove blog post: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in removeBlogPost:', error);
+      throw error;
+    }
   }
 
   // Programs
@@ -199,25 +288,41 @@ export class AdminService {
   }
 
   static async updateProgram(id: string, program: Partial<Program>): Promise<void> {
-    const updateData: any = {};
-    if (program.name !== undefined) updateData.name = program.name;
-    if (program.description !== undefined) updateData.description = program.description;
-    if (program.primaryColor !== undefined) updateData.primary_color = program.primaryColor;
-    if (program.accentColors !== undefined) updateData.accent_colors = program.accentColors;
-    if (program.features !== undefined) updateData.features = program.features;
+    if (!this.isAdminAuthenticated()) {
+      throw new Error('Admin authentication required');
+    }
 
-    const { error } = await supabase
-      .from('programs')
-      .update(updateData)
-      .eq('id', id);
+    try {
+      const updateData: any = {};
+      if (program.name !== undefined) updateData.name = program.name;
+      if (program.description !== undefined) updateData.description = program.description;
+      if (program.primaryColor !== undefined) updateData.primary_color = program.primaryColor;
+      if (program.accentColors !== undefined) updateData.accent_colors = program.accentColors;
+      if (program.features !== undefined) updateData.features = program.features;
 
-    if (error) throw error;
+      const { error } = await supabaseAdmin
+        .from('programs')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating program:', error);
+        throw new Error(`Failed to update program: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in updateProgram:', error);
+      throw error;
+    }
   }
 
   // Registrations
   static async getRegistrations(): Promise<any[]> {
+    if (!this.isAdminAuthenticated()) {
+      return [];
+    }
+
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('registrations')
         .select('*')
         .order('created_at', { ascending: false });
@@ -250,33 +355,53 @@ export class AdminService {
   }
 
   static async addRegistration(registration: any): Promise<void> {
-    const { error } = await supabase
-      .from('registrations')
-      .insert({
-        full_name: registration.fullName,
-        phone_number: registration.phoneNumber,
-        country: registration.country,
-        industry: registration.industry,
-        business_idea: registration.businessIdea,
-        open_to_collaboration: registration.openToCollaboration,
-        born_again: registration.bornAgain,
-        available_8_weeks: registration.available8Weeks,
-        time_preference: registration.timePreference,
-        days_preference: registration.daysPreference,
-        payment_method: registration.paymentMethod,
-        payment_proof: registration.paymentProof
-      });
+    try {
+      const { error } = await supabase
+        .from('registrations')
+        .insert({
+          full_name: registration.fullName,
+          phone_number: registration.phoneNumber,
+          country: registration.country,
+          industry: registration.industry,
+          business_idea: registration.businessIdea,
+          open_to_collaboration: registration.openToCollaboration,
+          born_again: registration.bornAgain,
+          available_8_weeks: registration.available8Weeks,
+          time_preference: registration.timePreference,
+          days_preference: registration.daysPreference,
+          payment_method: registration.paymentMethod,
+          payment_proof: registration.paymentProof
+        });
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error adding registration:', error);
+        throw new Error(`Failed to add registration: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in addRegistration:', error);
+      throw error;
+    }
   }
 
   static async removeRegistration(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('registrations')
-      .delete()
-      .eq('id', id);
+    if (!this.isAdminAuthenticated()) {
+      throw new Error('Admin authentication required');
+    }
 
-    if (error) throw error;
+    try {
+      const { error } = await supabaseAdmin
+        .from('registrations')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error removing registration:', error);
+        throw new Error(`Failed to remove registration: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in removeRegistration:', error);
+      throw error;
+    }
   }
 
   // Site Settings
@@ -300,14 +425,26 @@ export class AdminService {
   }
 
   static async updateSetting(key: string, value: any): Promise<void> {
-    const { error } = await supabase
-      .from('site_settings')
-      .upsert({
-        key,
-        value
-      });
+    if (!this.isAdminAuthenticated()) {
+      throw new Error('Admin authentication required');
+    }
 
-    if (error) throw error;
+    try {
+      const { error } = await supabaseAdmin
+        .from('site_settings')
+        .upsert({
+          key,
+          value
+        });
+
+      if (error) {
+        console.error(`Error updating setting ${key}:`, error);
+        throw new Error(`Failed to update setting: ${error.message}`);
+      }
+    } catch (error) {
+      console.error(`Error in updateSetting for ${key}:`, error);
+      throw error;
+    }
   }
 
   static async getRegistrationPrice(): Promise<number> {
