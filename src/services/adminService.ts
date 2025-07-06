@@ -19,23 +19,38 @@ export class AdminService {
   // Authentication
   static async login(username: string, password: string): Promise<boolean> {
     try {
+      console.log('Attempting login with username:', username);
+      
+      // First try to get the admin password from the database
       const { data, error } = await supabase
         .from('site_settings')
         .select('value')
         .eq('key', 'admin_password')
         .single();
 
+      let adminPassword = 'kingdomstudio2025'; // Default fallback password
+
       if (error) {
-        console.error('Login error:', error);
-        return false;
+        console.warn('Could not fetch admin password from database, using default:', error);
+      } else if (data?.value) {
+        // Handle both string and JSON string formats
+        if (typeof data.value === 'string') {
+          adminPassword = data.value.replace(/^"|"$/g, ''); // Remove quotes if present
+        } else {
+          adminPassword = data.value;
+        }
+        console.log('Retrieved admin password from database');
       }
 
-      const adminPassword = data?.value;
+      console.log('Comparing passwords...');
       const isValid = username === 'admin' && password === adminPassword;
       
       if (isValid) {
         // Store admin session
         localStorage.setItem('kbs-admin-session', 'authenticated');
+        console.log('Login successful');
+      } else {
+        console.log('Login failed - invalid credentials');
       }
       
       return isValid;
