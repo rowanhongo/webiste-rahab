@@ -419,7 +419,7 @@ export class AdminService {
     }
   }
 
-  // Site Settings
+  // Site Settings - Enhanced with better error handling and retry logic
   static async getSetting(key: string): Promise<any> {
     try {
       const { data, error } = await supabase
@@ -445,17 +445,37 @@ export class AdminService {
     }
 
     try {
+      console.log(`Updating setting ${key} with value:`, value);
+      
       const client = this.getClient();
-      const { error } = await client
+      
+      // First try to update existing record
+      const { data: updateData, error: updateError } = await client
         .from('site_settings')
-        .upsert({
-          key,
-          value
-        });
+        .update({ value, updated_at: new Date().toISOString() })
+        .eq('key', key)
+        .select();
 
-      if (error) {
-        console.error(`Error updating setting ${key}:`, error);
-        throw new Error(`Failed to update setting: ${error.message}`);
+      if (updateError) {
+        console.log(`Update failed, trying upsert for ${key}:`, updateError);
+        
+        // If update fails, try upsert
+        const { error: upsertError } = await client
+          .from('site_settings')
+          .upsert({
+            key,
+            value,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'key'
+          });
+
+        if (upsertError) {
+          console.error(`Upsert failed for setting ${key}:`, upsertError);
+          throw new Error(`Failed to update setting: ${upsertError.message}`);
+        }
+      } else {
+        console.log(`Successfully updated setting ${key}:`, updateData);
       }
     } catch (error) {
       console.error(`Error in updateSetting for ${key}:`, error);
@@ -469,6 +489,7 @@ export class AdminService {
   }
 
   static async updateRegistrationPrice(price: number): Promise<void> {
+    console.log('Updating registration price to:', price);
     await this.updateSetting('registration_price', price);
   }
 
@@ -483,6 +504,7 @@ export class AdminService {
   }
 
   static async updateContactInfo(info: ContactInfo): Promise<void> {
+    console.log('Updating contact info:', info);
     await this.updateSetting('contact_info', info);
   }
 
@@ -497,10 +519,12 @@ export class AdminService {
   }
 
   static async updateSocialMediaLinks(links: SocialMediaLinks): Promise<void> {
+    console.log('Updating social media links:', links);
     await this.updateSetting('social_media_links', links);
   }
 
   static async updateAdminPassword(newPassword: string): Promise<void> {
+    console.log('Updating admin password');
     await this.updateSetting('admin_password', newPassword);
   }
 }
