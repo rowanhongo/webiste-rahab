@@ -179,7 +179,13 @@ const Home: React.FC = () => {
             {businesses.slice(0, 6).map((business) => (
               <div key={business.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-4xl">{business.logo}</div>
+                  <div className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded border">
+                    {business.logo.startsWith('data:') ? (
+                      <img src={business.logo} alt={business.name} className="w-10 h-10 object-cover rounded" />
+                    ) : (
+                      <span className="text-2xl">{business.logo}</span>
+                    )}
+                  </div>
                   {business.isNew && (
                     <span className="bg-mustard-yellow text-white px-3 py-1 rounded-full text-sm font-inter font-medium">
                       New
@@ -242,9 +248,12 @@ const Home: React.FC = () => {
                     <span className="text-sm text-gray-500 font-inter">
                       By {post.author}
                     </span>
-                    <button className="text-royal-blue font-inter font-medium hover:text-deep-blue transition-colors">
+                    <Link 
+                      to={`/blog/${post.id}`}
+                      className="text-royal-blue font-inter font-medium hover:text-deep-blue transition-colors"
+                    >
                       Read More
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </article>

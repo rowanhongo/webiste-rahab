@@ -37,6 +37,7 @@ interface AdminContextType {
   updateProgram: (id: string, program: Partial<Program>) => void;
   addRegistration: (registration: any) => void;
   getRegistrations: () => any[];
+  removeRegistration: (id: string) => void;
   updateRegistrationPrice: (price: number) => void;
   updateContactInfo: (info: ContactInfo) => void;
   updateSocialMediaLinks: (links: SocialMediaLinks) => void;
@@ -199,6 +200,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const getRegistrations = () => registrations;
 
+  const removeRegistration = (id: string) => {
+    const updatedRegistrations = registrations.filter(r => r.id !== id);
+    setRegistrations(updatedRegistrations);
+    localStorage.setItem('kbs-registrations', JSON.stringify(updatedRegistrations));
+  };
+
   const updateRegistrationPrice = (price: number) => {
     setRegistrationPrice(price);
     localStorage.setItem('kbs-registration-price', JSON.stringify(price));
@@ -260,6 +267,7 @@ Sent from Kingdom Business Studio Contact Form
         updateProgram,
         addRegistration,
         getRegistrations,
+        removeRegistration,
         updateRegistrationPrice,
         updateContactInfo,
         updateSocialMediaLinks,

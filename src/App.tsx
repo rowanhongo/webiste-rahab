@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Register from './pages/Register';
 import Contact from './pages/Contact';
 import Admin from './pages/Admin';
+import BlogPost from './pages/BlogPost';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
             <Route index element={<Home />} />
             <Route path="register" element={<Register />} />
             <Route path="contact" element={<Contact />} />
+            <Route path="blog/:id" element={<BlogPost />} />
           </Route>
           <Route path="/admin" element={<Admin />} />
         </Routes>
