@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Crown } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -24,9 +25,23 @@ const Header: React.FC = () => {
   const handleNavClick = (path: string) => {
     if (path.startsWith('/#')) {
       const sectionId = path.substring(2);
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+      
+      // If we're not on the home page, navigate to home first
+      if (location.pathname !== '/') {
+        navigate('/');
+        // Wait for navigation to complete, then scroll to section
+        setTimeout(() => {
+          const element = document.getElementById(sectionId);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      } else {
+        // If we're already on home page, just scroll to section
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
       }
     }
     setIsMenuOpen(false);

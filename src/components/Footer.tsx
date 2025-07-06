@@ -1,10 +1,32 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Linkedin, Crown, MessageCircle } from 'lucide-react';
 import { useAdmin } from '../context/AdminContext';
 
 const Footer: React.FC = () => {
   const { contactInfo, socialMediaLinks } = useAdmin();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleSectionClick = (sectionId: string) => {
+    // If we're not on the home page, navigate to home first
+    if (location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation to complete, then scroll to section
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      // If we're already on home page, just scroll to section
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
     <footer className="bg-deep-blue text-white py-12">
@@ -35,12 +57,7 @@ const Footer: React.FC = () => {
               <li><Link to="/" className="hover:text-mustard-yellow transition-colors">Home</Link></li>
               <li>
                 <button 
-                  onClick={() => {
-                    const element = document.getElementById('programs');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
+                  onClick={() => handleSectionClick('programs')}
                   className="hover:text-mustard-yellow transition-colors text-left"
                 >
                   Programs
@@ -48,12 +65,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <button 
-                  onClick={() => {
-                    const element = document.getElementById('businesses');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
+                  onClick={() => handleSectionClick('businesses')}
                   className="hover:text-mustard-yellow transition-colors text-left"
                 >
                   Businesses
@@ -61,12 +73,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <button 
-                  onClick={() => {
-                    const element = document.getElementById('blog');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
+                  onClick={() => handleSectionClick('blog')}
                   className="hover:text-mustard-yellow transition-colors text-left"
                 >
                   Blog
