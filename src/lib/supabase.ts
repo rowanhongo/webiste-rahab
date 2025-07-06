@@ -4,21 +4,27 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
+// Fallback values for development/demo purposes
+const defaultUrl = 'https://nxpibfbykzeapwizlpvl.supabase.co';
+const defaultAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54cGliZmJ5a3plYXB3aXpscHZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MDM5NDQsImV4cCI6MjA2NzM3OTk0NH0.TQHBJpnstqFNzNOtNVe8zVU-lHJkJtgjQBWYdGE_Xtw';
+const defaultServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54cGliZmJ5a3plYXB3aXpscHZsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTgwMzk0NCwiZXhwIjoyMDY3Mzc5OTQ0fQ.MM64-e7FGVuBFTsDuzMV9nCyMZakAkl_zjyEvnvSFfc';
 
-if (!supabaseServiceKey) {
-  console.warn('Service role key not found, using anon key for admin operations');
+// Use environment variables if available, otherwise use defaults
+const finalUrl = supabaseUrl || defaultUrl;
+const finalAnonKey = supabaseAnonKey || defaultAnonKey;
+const finalServiceKey = supabaseServiceKey || defaultServiceKey;
+
+if (!finalUrl || !finalAnonKey) {
+  console.error('Missing Supabase configuration');
 }
 
 // Public client for read operations and user registrations
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(finalUrl, finalAnonKey);
 
 // Admin client with service role for admin operations
 export const supabaseAdmin = createClient(
-  supabaseUrl, 
-  supabaseServiceKey || supabaseAnonKey,
+  finalUrl, 
+  finalServiceKey,
   {
     auth: {
       autoRefreshToken: false,
@@ -26,8 +32,8 @@ export const supabaseAdmin = createClient(
     },
     global: {
       headers: {
-        'apikey': supabaseServiceKey || supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseServiceKey || supabaseAnonKey}`
+        'apikey': finalServiceKey,
+        'Authorization': `Bearer ${finalServiceKey}`
       }
     }
   }

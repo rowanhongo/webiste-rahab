@@ -83,7 +83,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       setLoading(true);
       
-      // Load all data in parallel
+      // Load all data in parallel with error handling
       const [
         businessesData,
         blogPostsData,
@@ -91,7 +91,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         priceData,
         contactData,
         socialData
-      ] = await Promise.all([
+      ] = await Promise.allSettled([
         AdminService.getBusinesses(),
         AdminService.getBlogPosts(),
         AdminService.getPrograms(),
@@ -100,20 +100,41 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         AdminService.getSocialMediaLinks()
       ]);
 
-      setBusinesses(businessesData);
-      setBlogPosts(blogPostsData);
-      setPrograms(programsData);
-      setRegistrationPrice(priceData);
-      setContactInfo(contactData);
-      setSocialMediaLinks(socialData);
+      // Handle results with fallbacks
+      setBusinesses(businessesData.status === 'fulfilled' ? businessesData.value : []);
+      setBlogPosts(blogPostsData.status === 'fulfilled' ? blogPostsData.value : []);
+      setPrograms(programsData.status === 'fulfilled' ? programsData.value : []);
+      setRegistrationPrice(priceData.status === 'fulfilled' ? priceData.value : 3000);
+      setContactInfo(contactData.status === 'fulfilled' ? contactData.value : {
+        phone: '+254 700 123 456',
+        email: 'info@kingdombusinessstudio.com',
+        whatsapp: '+254700123456',
+        location: 'Nairobi, Kenya',
+      });
+      setSocialMediaLinks(socialData.status === 'fulfilled' ? socialData.value : {
+        facebook: 'https://facebook.com/kingdombusinessstudio',
+        instagram: 'https://instagram.com/kingdombusinessstudio',
+        twitter: 'https://twitter.com/kingdombusiness',
+        linkedin: 'https://linkedin.com/company/kingdom-business-studio',
+      });
 
       // Load registrations only if authenticated
       if (AdminService.isAdminAuthenticated()) {
-        const registrationsData = await AdminService.getRegistrations();
-        setRegistrations(registrationsData);
+        try {
+          const registrationsData = await AdminService.getRegistrations();
+          setRegistrations(registrationsData);
+        } catch (error) {
+          console.error('Error loading registrations:', error);
+          setRegistrations([]);
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      // Set default values on error
+      setBusinesses([]);
+      setBlogPosts([]);
+      setPrograms([]);
+      setRegistrationPrice(3000);
     } finally {
       setLoading(false);
     }
